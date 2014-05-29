@@ -1,0 +1,150 @@
+#!/usr/bin/python3
+
+import os
+import sys
+import argparse
+import datetime
+from datetime import date
+from datetime import timedelta
+import time
+import re
+
+##-- Parse command-line arguments
+parser = argparse.ArgumentParser(description='Dig for information from FreeSurfer output')
+parser.add_argument('rootfolder', help='Provide a subject\'s root FreeSurfer output folder.')
+parser.add_argument('-s', '--sparse', action='store_true', help='Avoid printing the ID, keep it sparse.')
+parser.add_argument('-v', '--version_short', action='store_true', help='Output the dot version of FreeSurfer used.')
+parser.add_argument('-V', '--version_long', action='store_true', help='Output the full version of FreeSurfer used.')
+parser.add_argument('-t', '--time_short', action='store_true', help='Output the total elapsed time of the whole run.')
+parser.add_argument('-T', '--time_long', action='store_true', help='Output the individual timings of each step.')
+parser.add_argument('-u', '--username', action='store_true', help='Output the user account running freesurfer.')
+parser.add_argument('-m', '--machine', action='store_true', help='Output the host on which this subject was run.')
+parser.add_argument('-c', '--completion', action='store_true', help='Output success or failure of the job.')
+args = parser.parse_args()
+
+##-- Utilize the command-line arguments passed in from the shell
+subjectroot = os.path.abspath(args.rootfolder)
+if not os.path.isdir(subjectroot):
+	print("'{}' does not exist.".format( subjectroot ))
+	sys.exit()
+#else:
+#	print("'{}' exists! Mining...".format( subjectroot ))
+
+##-- Start by determining the subject ID
+subjectid = ""
+reg_id = re.compile(r'.*(?P<sid>[A-Za-z][0-9]{6})')
+mat_id = reg_id.match(subjectroot)
+if mat_id:
+	subjectid = mat_id.group('sid')
+else:
+	print("I can't determine a subject's ID from '{}'.".format( subjectroot ))
+
+##-- Deal with versioning
+if args.version_short or args.version_long:
+	stampfile = subjectroot + "/scripts/build-stamp.txt"
+	if not os.path.isfile(stampfile):
+		print("'{}' does not exist. I can't find version information.".format( stampfile ))
+	else:
+		version_string=""
+		f = open(stampfile)
+		for line in f:
+			if '\n' == line[-1]:
+				line = line[:-1]
+			version_string = line
+		f.close()
+		if args.version_long:
+			if args.sparse:
+				print(version_string)
+			else:
+				print("{} : {}".format( subjectid, version_string ))
+		else: # if args.version_short:
+			if args.sparse:
+				print(version_string[-6:])
+			else:
+				print("{} : {}".format( subjectid, version_string[-6:] ))
+	
+##-- Deal with elapsed times
+if args.time_short or args.time_long:
+	cmdfile = subjectroot + "/scripts/recon-all.cmd"
+	if not os.path.isfile(cmdfile):
+		print("'{}' does not exist. I can't find timing information.".format( cmdfile ))
+	else:
+		tfstring="%a %b %d %X %Z %Y"
+		first_time=datetime.datetime.now()
+		last_time=datetime.datetime.now()
+		this_time=datetime.datetime.now()
+		reg_tstamp = re.compile(r'^#@# (?P<task>[\w ]*) (?P<stmp>\w{3} \w* \d* \d\d:\d\d:\d\d \w{3} \d{4})')
+		f = open(cmdfile)
+		n=0
+		for line in f:
+			mat_tstamp = reg_tstamp.match(line)
+			if mat_tstamp:
+				if n == 0:
+					first_time = datetime.datetime.strptime(mat_tstamp.group('stmp'), tfstring)
+					last_time = first_time
+				n+=1
+				this_time = datetime.datetime.strptime(mat_tstamp.group('stmp'), tfstring)
+				td_small = this_time - last_time
+				td_large = this_time - first_time
+				if args.time_long:
+					if args.sparse:
+						print('{' ':2} : {:5.0f}'.format( n, td_small.total_seconds() ))
+					else:
+						print('{} : {' ':2} : {' ':28} : {} ({:5.0f}, {:5.0f})'.format( subjectid, n, mat_tstamp.group('task'), mat_tstamp.group('stmp'), td_small.total_seconds(), td_large.total_seconds()))
+				last_time = this_time
+		f.close()
+		if args.time_short:
+			if args.sparse:
+				print('{:5.0f}'.format( td_large.total_seconds() ))
+			else:
+				print('{} : {:5.0f} seconds ({:2.1f} hrs)'.format( subjectid, td_large.total_seconds(), td_large.total_seconds()/3600.0 ))
+
+##-- Determine the completion status
+if args.completion:
+	if os.path.isfile(subjectroot + "/scripts/recon-all.error"):
+		if args.sparse:
+			print("error")
+		else:
+			f = open(subjectroot + "/scripts/recon-all.error")
+			lastline=""
+			for line in f:
+				lastline=line
+			f.close()
+			print("{} : Error in '{}'".format( subjectid, lastline))
+	if os.path.isfile(subjectroot + "/scripts/recon-all.done"):
+		if args.sparse:
+			print("success")
+		else:
+			print("{} : success".format( subjectid ))
+			
+##-- Determine the user or hostname
+if args.username or args.machine:
+	if os.path.isfile(subjectroot + "/scripts/recon-all.done"):
+		reg_machine = re.compile(r'.*HOST (?P<machine>\w*).*')
+		reg_username = re.compile(r'.*USER (?P<username>\w*).*')
+		f = open(subjectroot + "/scripts/recon-all.done")
+		for line in f:
+			if args.machine:
+				mat_machine = reg_machine.match(line)
+				if mat_machine:
+					if args.sparse:
+						print(mat_machine.group('machine'))
+					else:
+						print("{} : {}".format( subjectid, mat_machine.group('machine') ))
+			if args.username:
+				mat_username = reg_username.match(line)
+				if mat_username:
+					if args.sparse:
+						print(mat_username.group('username'))
+					else:
+						print("{} : {}".format( subjectid, mat_username.group('username') ))
+		f.close()
+	else:
+		if args.sparse:
+			print("failure")
+		else:
+			print("{} : failure".format( subjectid ))
+			
+	
+
+#print("Done!")
