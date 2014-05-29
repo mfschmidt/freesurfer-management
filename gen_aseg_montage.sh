@@ -11,7 +11,7 @@ if [ $# -lt "1" ]; then
 fi
 
 # Make sure we have a subject
-if [ ! -d $SUBJECTS_DIR/${1} ]; then
+if [ ! -d ${SUBJECTS_DIR}/${1} ]; then
 	echo "I expect freesurfer data at ${SUBJECTS_DIR}/${1}"
 	echo "I'm quitting because I can't find it."
 	echo "Try setting the \$SUBJECTS_DIR environment variable."
@@ -64,7 +64,7 @@ for ori in 0 1 2; do
 	done
 done
 #echo "montaging ${IMGS}"
-montage ${IMGS} -tile 4x3 -geometry 320x320+1+1 ../${1}/${1}.png
+montage ${IMGS} -tile 4x3 -geometry 320x320+1+1 ${SUBJECTS_DIR}/${1}/${1}.png
 
 # clean up our mess
 cd ${OLDPWD}
