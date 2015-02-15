@@ -1,13 +1,184 @@
 #!/usr/bin/python3
 
-import os
-import sys
-import argparse
-import datetime
+## Input:
+#    a full path to a folder containing Freesurfer output
+#    This usu. looks something like "/home/mike/Brains/Rochester/R000001"
+#
+
+## Output:
+#    Depending on the arguments provided at presentation, data derived
+#    from the Freesurfer process, see arguments for details
+#
+
+## We expect to find certain folders and files within any of these structures.
+## Differences in filecounts here can indicate failure at differnent places
+## through the pipeline.
+#    ./bem             ?
+#    ./label           ~69 files (.ctab, .annot, .label) containing labels for regions within images
+#    ./mri             ~34 files, 24 output images with .mgz extensions
+#         /orig        The mgz version of the input image
+#         /transforms  Talairach transformations of the original
+#    ./scripts         ~12 log files, useful for determining environment and commands issued
+#    ./src             ?
+#    ./stats           18 .stats files, quantitative results for volumes, areas, etc.
+#    ./surf            ~70 files
+#    ./tmp             ?
+#    ./touch           Records of some commands in the pipeline
+#    ./trash           ?
+
+
+## Use others' code to make our lives easier
+import sys            # To get command-line arguments
+import argparse       # A framework for parsing command-line arguments
+import os             # For digging through directories and files
+import re             # Regular expression support
+import datetime       # To handle dates and times
 from datetime import date
 from datetime import timedelta
 import time
-import re
+
+##------------------------------------------------------------------------------
+##-- Define constants and globals for later use
+##------------------------------------------------------------------------------
+TS_Format = "%a %b %d %H:%M:%S %Z %Y"
+
+## Define any globals
+neededfiles = {'log':'/scripts/recon-all.log',
+               'stamp':'/scripts/build-stamp.txt',
+               'cmd':'/scripts/recon-all.cmd',
+               'aseg':'/stats/aseg.stats',
+               'wmparc':'/stats/wmparc.stats',
+               'aparc1l':'/stats/lh.aparc.stats',
+               'aparc1r':'/stats/rh.aparc.stats',
+               'aparc2l':'/stats/lh.aparc.a2009s.stats',
+               'aparc2r':'/stats/rh.aparc.a2009s.stats',
+               'aparc3l':'/stats/lh.aparc.DKTatlas40.stats',
+               'aparc3r':'/stats/rh.aparc.DKTatlas40.stats'}
+optionfiles = {'err':'/scripts/recon-all.error',
+               'done':'/scripts/recon-all.done'}
+
+ts_begin = datetime.datetime(1975, 3, 11, 0, 0, 0)
+ts_end = ts_begin
+StartedOver = ' '
+left_hcv = ''
+right_hcv = ''
+hcvfile = 0
+
+##------------------------------------------------------------------------------
+##-- Define functions for later use
+##------------------------------------------------------------------------------
+
+
+##-- Sanity check... Do things look like we expect?
+def input_ok(mypath):
+	if os.path.isdir(mypath):
+		partial = False
+		full = True
+		for fd, fv in neededfiles.items():
+			if os.path.isfile(mypath + fv):
+				partial = True
+			else:
+				full = False
+		if full:
+			# Only if the directory exists and has all expected files should we continue.
+			return True
+		elif partial:
+			print("I found \"{argdir}\". It has some freesurfer data, but not everything expected.".format(argdir=mypath))
+			return False
+		else:
+			print("I found \"{argdir}\", but it does not appear to contain freesurfer data.".format(argdir=mypath))
+			return False
+	else:
+		print("I cannot find the directory, \"{argdir}\".".format(argdir=mypath))
+		return False
+	print("Damn! This is a bug in the \"input_ok()\" function. Execution should never have reached this point. I am not detecting files appropriately.")
+	return False
+	## end input_status function
+
+
+##-- Extract the version information
+def get_fsversion(verbosity, sparsity=False):
+	stampfile = subjectroot + neededfiles['stamp']
+	version_string=""
+	f = open(stampfile)
+	for line in f:
+		if '\n' == line[-1]:
+			line = line[:-1]
+		version_string = line
+	f.close()
+	if verbosity == "short":
+		return(version_string[-6:])
+	# else verbosity must be long
+	return(version_string)
+	# / end get_fsversion() function
+
+
+##-- Extract the elapsed time
+def get_fselapsed(verbosity, sparsity=False):
+	cmdfile = subjectroot + neededfiles['cmd']
+	timestrings = []
+	tfstring="%a %b %d %X %Z %Y"
+	first_time=datetime.datetime.now()
+	last_time=datetime.datetime.now()
+	this_time=datetime.datetime.now()
+	reg_tstamp = re.compile(r'^#@# (?P<task>.*) (?P<stmp>\w{3}\s+\w+\s+\d+\s+\d\d:\d\d:\d\d\s+\w{3}\s+\d{4})')
+	f = open(cmdfile)
+	n=0
+	for line in f:
+		mat_tstamp = reg_tstamp.match(line)
+		if mat_tstamp:
+			if n == 0:
+				first_time = datetime.datetime.strptime(mat_tstamp.group('stmp'), tfstring)
+				last_time = first_time
+			n+=1
+			this_time = datetime.datetime.strptime(mat_tstamp.group('stmp'), tfstring)
+			td_small = this_time - last_time
+			td_large = this_time - first_time
+			if verbosity == "long":
+				if sparsity:
+					timestrings.append("{:2} : {:5.0f}\n".format( n, td_small.total_seconds() ))
+				else:
+					timestrings.append("{:2} : {:28} : {} ({:5.0f}, {:5.0f})\n".format( n, mat_tstamp.group('task'), mat_tstamp.group('stmp'), td_small.total_seconds(), td_large.total_seconds()))
+			last_time = this_time
+	f.close()
+	if verbosity == "short":
+		if sparsity:
+			timestrings.append("{:5.0f}".format( td_large.total_seconds() ))
+		else:
+			timestrings.append("{:5.0f} seconds ({:2.1f} hrs)".format( td_large.total_seconds(), td_large.total_seconds()/3600.0 ))
+	return(''.join(timestrings))
+	## / end get_fselapsed() function
+
+
+##-- Extract the hostname on which freesurfer was run
+def get_fshostname(verbosity, sparsity=False):
+	retval = ""
+	if os.path.isfile(subjectroot + optionfiles["done"]):
+		reg_machine = re.compile(r'.*HOST (?P<machine>\w*).*')
+		f = open(subjectroot + optionfiles["done"])
+		for line in f:
+			mat_machine = reg_machine.match(line)
+			if mat_machine:
+				retval = mat_machine.group('machine')
+		f.close()
+	return(retval)
+	## / end get_hostname() function
+
+
+##-- Extract the username under which freesurfer was run
+def get_fsusername(verbosity, sparsity=False):
+	retval = ""
+	if os.path.isfile(subjectroot + optionfiles["done"]):
+		reg_username = re.compile(r'.*USER (?P<username>\w*).*')
+		f = open(subjectroot + optionfiles["done"])
+		for line in f:
+			mat_username = reg_username.match(line)
+			if mat_username:
+				retval = mat_username.group('username')
+		f.close()
+	return(retval)
+	## / end get_username() function
+
 
 ##-- Parse command-line arguments
 parser = argparse.ArgumentParser(description='Dig for information from FreeSurfer output')
@@ -22,13 +193,12 @@ parser.add_argument('-m', '--machine', action='store_true', help='Output the hos
 parser.add_argument('-c', '--completion', action='store_true', help='Output success or failure of the job.')
 args = parser.parse_args()
 
-##-- Utilize the command-line arguments passed in from the shell
 subjectroot = os.path.abspath(args.rootfolder)
-if not os.path.isdir(subjectroot):
-	print("'{}' does not exist.".format( subjectroot ))
+
+##-- Do we have a legitimate set of freesurfer data to work with?
+if not input_ok(subjectroot):
 	sys.exit()
-#else:
-#	print("'{}' exists! Mining...".format( subjectroot ))
+
 
 ##-- Start by determining the subject ID
 subjectid = ""
@@ -38,112 +208,66 @@ if mat_id:
 	subjectid = mat_id.group('sid')
 else:
 	print("I can't determine a subject's ID from '{}'.".format( subjectroot ))
+	sys.exit()
+
 
 ##-- Deal with versioning
-if args.version_short or args.version_long:
-	stampfile = subjectroot + "/scripts/build-stamp.txt"
-	if not os.path.isfile(stampfile):
-		print("'{}' does not exist. I can't find version information.".format( stampfile ))
+if args.version_short:
+	if args.sparse:
+		print(get_fsversion("short", args.sparse))
 	else:
-		version_string=""
-		f = open(stampfile)
-		for line in f:
-			if '\n' == line[-1]:
-				line = line[:-1]
-			version_string = line
-		f.close()
-		if args.version_long:
-			if args.sparse:
-				print(version_string)
-			else:
-				print("{} : {}".format( subjectid, version_string ))
-		else: # if args.version_short:
-			if args.sparse:
-				print(version_string[-6:])
-			else:
-				print("{} : {}".format( subjectid, version_string[-6:] ))
-	
+		print("{sid} : {ver}".format( sid=subjectid, ver=get_fsversion("short")))
+elif args.version_long:
+	if args.sparse:
+		print(get_fsversion("long", args.sparse))
+	else:
+		print("{sid} : {ver}".format( sid=subjectid, ver=get_fsversion("long") ))
+
+
 ##-- Deal with elapsed times
-if args.time_short or args.time_long:
-	cmdfile = subjectroot + "/scripts/recon-all.cmd"
-	if not os.path.isfile(cmdfile):
-		print("'{}' does not exist. I can't find timing information.".format( cmdfile ))
+if args.time_short:
+	if args.sparse:
+		print( get_fselapsed("short", args.sparse) )
 	else:
-		tfstring="%a %b %d %X %Z %Y"
-		first_time=datetime.datetime.now()
-		last_time=datetime.datetime.now()
-		this_time=datetime.datetime.now()
-		reg_tstamp = re.compile(r'^#@# (?P<task>[\w ]*) (?P<stmp>\w{3} \w* \d* \d\d:\d\d:\d\d \w{3} \d{4})')
-		f = open(cmdfile)
-		n=0
-		for line in f:
-			mat_tstamp = reg_tstamp.match(line)
-			if mat_tstamp:
-				if n == 0:
-					first_time = datetime.datetime.strptime(mat_tstamp.group('stmp'), tfstring)
-					last_time = first_time
-				n+=1
-				this_time = datetime.datetime.strptime(mat_tstamp.group('stmp'), tfstring)
-				td_small = this_time - last_time
-				td_large = this_time - first_time
-				if args.time_long:
-					if args.sparse:
-						print('{' ':2} : {:5.0f}'.format( n, td_small.total_seconds() ))
-					else:
-						print('{} : {' ':2} : {' ':28} : {} ({:5.0f}, {:5.0f})'.format( subjectid, n, mat_tstamp.group('task'), mat_tstamp.group('stmp'), td_small.total_seconds(), td_large.total_seconds()))
-				last_time = this_time
-		f.close()
-		if args.time_short:
-			if args.sparse:
-				print('{:5.0f}'.format( td_large.total_seconds() ))
-			else:
-				print('{} : {:5.0f} seconds ({:2.1f} hrs)'.format( subjectid, td_large.total_seconds(), td_large.total_seconds()/3600.0 ))
+		print("{sid} : {elapsed}".format( sid=subjectid, elapsed=get_fselapsed("short", args.sparse) ))
+elif args.time_long:
+	if args.sparse:
+		print( get_fselapsed("long", args.sparse) )
+	else:
+		print("{sid}\n{elapsed}".format( sid=subjectid, elapsed=get_fselapsed("long", args.sparse) ))
+
 
 ##-- Determine the completion status
 if args.completion:
-	if os.path.isfile(subjectroot + "/scripts/recon-all.error"):
+	if os.path.isfile(subjectroot + optionfiles["err"]):
 		if args.sparse:
-			print("error")
+			print("error   ")
 		else:
-			f = open(subjectroot + "/scripts/recon-all.error")
+			f = open(subjectroot + optionfiles["err"])
 			lastline=""
 			for line in f:
 				lastline=line
 			f.close()
 			print("{} : Error in '{}'".format( subjectid, lastline))
-	if os.path.isfile(subjectroot + "/scripts/recon-all.done"):
+	if os.path.isfile(subjectroot + optionfiles["done"]):
 		if args.sparse:
-			print("success")
+			print("complete")
 		else:
-			print("{} : success".format( subjectid ))
-			
+			print("{} : complete".format( subjectid ))
+
+
 ##-- Determine the user or hostname
-if args.username or args.machine:
-	if os.path.isfile(subjectroot + "/scripts/recon-all.done"):
-		reg_machine = re.compile(r'.*HOST (?P<machine>\w*).*')
-		reg_username = re.compile(r'.*USER (?P<username>\w*).*')
-		f = open(subjectroot + "/scripts/recon-all.done")
-		for line in f:
-			if args.machine:
-				mat_machine = reg_machine.match(line)
-				if mat_machine:
-					if args.sparse:
-						print(mat_machine.group('machine'))
-					else:
-						print("{} : {}".format( subjectid, mat_machine.group('machine') ))
-			if args.username:
-				mat_username = reg_username.match(line)
-				if mat_username:
-					if args.sparse:
-						print(mat_username.group('username'))
-					else:
-						print("{} : {}".format( subjectid, mat_username.group('username') ))
-		f.close()
+if args.username:
+	if args.sparse:
+		print( get_fsusername("short", args.sparse) )
 	else:
-		if args.sparse:
-			print("failure")
-		else:
-			print("{} : failure".format( subjectid ))
+		print("{sid} : {username}".format( sid=subjectid, username=get_fsusername("short", args.sparse) ))
+
+if args.machine:
+	if args.sparse:
+		print( get_fshostname("short", args.sparse) )
+	else:
+		print("{sid} : {hostname}".format( sid=subjectid, hostname=get_fshostname("short", args.sparse) ))
 			
 	
 
