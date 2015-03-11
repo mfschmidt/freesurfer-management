@@ -180,6 +180,11 @@ def get_fsusername(verbosity, sparsity=False):
 	## / end get_username() function
 
 
+##------------------------------------------------------------------------------
+##-- Define expected command-line arguments
+##------------------------------------------------------------------------------
+
+
 ##-- Parse command-line arguments
 parser = argparse.ArgumentParser(description='Dig for information from FreeSurfer output')
 parser.add_argument('rootfolder', help='Provide a subject\'s root FreeSurfer output folder.')
@@ -198,6 +203,11 @@ subjectroot = os.path.abspath(args.rootfolder)
 ##-- Do we have a legitimate set of freesurfer data to work with?
 if not input_ok(subjectroot):
 	sys.exit()
+
+
+##------------------------------------------------------------------------------
+##-- Finally, with functions and arguments ready, do our thing...
+##------------------------------------------------------------------------------
 
 
 ##-- Start by determining the subject ID
