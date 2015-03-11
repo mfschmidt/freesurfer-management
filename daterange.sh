@@ -1,5 +1,18 @@
 #!/bin/bash
 
+# From the freesurfer $SUBJECTS_DIR directory, this will report the duration of
+# creation timestamps on files found in a particular subject's subdirectory,
+# reporting the duration of the freesurfer run, start to finish
+
+# Usage: daterange.sh subjectname
+if [ $# -eq 0 ]
+  then
+    echo "Which subject?"
+    echo "Usage:"
+    echo "$ daterange.sh subjectname"
+    exit 1
+fi
+
 # Set a grossly over- and under- estimated date as bookends
 min_d="9999-99-99"
 max_d="0000-00-00"
