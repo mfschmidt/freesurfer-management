@@ -83,8 +83,10 @@ def input_ok(mypath):
 			# Only if the directory exists and has all expected files should we continue.
 			return True
 		elif partial:
-			print("I found \"{argdir}\". It has some freesurfer data, but not everything expected.".format(argdir=mypath))
-			return False
+			# This is actually OK for retrieving error status, but returning True means
+			# it is now necessary to make every function robust to missing files.
+			#print("I found \"{argdir}\". It has some freesurfer data, but not everything expected.".format(argdir=mypath))
+			return True
 		else:
 			print("I found \"{argdir}\", but it does not appear to contain freesurfer data.".format(argdir=mypath))
 			return False
@@ -100,6 +102,8 @@ def input_ok(mypath):
 def get_fsversion(verbosity, sparsity=False):
 	stampfile = subjectroot + neededfiles['stamp']
 	version_string=""
+	if not os.path.isfile(stampfile):
+		return("N/A")
 	f = open(stampfile)
 	for line in f:
 		if '\n' == line[-1]:
@@ -116,6 +120,8 @@ def get_fsversion(verbosity, sparsity=False):
 ##-- Extract the elapsed time
 def get_fselapsed(verbosity, sparsity=False):
 	cmdfile = subjectroot + neededfiles['cmd']
+	if not os.path.isfile(cmdfile):
+		return("N/A")
 	timestrings = []
 	tfstring="%a %b %d %X %Z %Y"
 	first_time=datetime.datetime.now()
