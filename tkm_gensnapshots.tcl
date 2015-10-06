@@ -1,6 +1,8 @@
 # Set up a particular subject's freesurfer data to screenshot the
 # aseg data for rapid review later.
 
+# This script is required and utilized by gen_aseg_montage.sh
+
 # Be sure we are in a coronal orientation (should already be)
 SetOrientation 0
 
