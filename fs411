@@ -8,7 +8,8 @@
 ## Output:
 #    Depending on the arguments provided at presentation, metadata derived
 #    from the Freesurfer process, see arguments for details
-#
+#    This is NOT for extracting subject data like brain volumes.
+#    It is for extracting data concerning the FreeSurfer processing itself.
 
 ## We expect to find certain folders and files within any of these structures.
 ## Differences in filecounts here can indicate failure at differnent places

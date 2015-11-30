@@ -7,7 +7,9 @@
 
 ## Output:
 #    The subject, start date, duration, and completion state of the Freesurfer process
-#
+#         Without arguments, reports all on one line
+#      -v reports much more data, on multiple lines,
+#           including hippocampal, brain, and intracranial volumes.
 
 ## We expect to find certain folders and files within any of these structures.
 ## Differences in filecounts here can indicate failure at differnent places
@@ -69,7 +71,11 @@ full_output_path = os.path.abspath(args.output_path)    # in the case of 'pwd' o
 if args.verbose:
    print('Checking ' + full_output_path)
 if args.hcv != '':
-   hcvfile=open(args.hcv, 'a')
+   if os.path.isfile(args.hcv):
+      hcvfile=open(args.hcv, 'a')
+   else:
+      hcvfile=open(args.hcv, 'w')
+      hcvfile.write("subject,left_hcv,right_hcv,brainvol,tiv\n")
 else:
    hcvfile=open("/dev/null", 'a')
 
@@ -177,12 +183,14 @@ else:
 
 reg_hcv = re.compile(r' *[0-9]* *[0-9]* *[0-9]* *([0-9]*\.[0-9])  ([LR])[a-z]*t-Hippocampus')
 reg_tiv = re.compile(r'.*(EstimatedTotalIntraCranialVol).*[\s]([0-9]+[\.][0-9]+), mm\^3')
+reg_tbv = re.compile(r'.*(BrainSeg),.*[\s]([0-9]+[\.][0-9]+), mm\^3')
 #  The 's' character indicates the aseg.stats file.
 if 's' in files_found:
    whichline = 0
    for line in open(full_output_path + expected_files[2][2]):
       match_hcv = reg_hcv.match(line)
       match_tiv = reg_tiv.match(line)
+      match_tbv = reg_tbv.match(line)
       if match_hcv:
          if reg_hcv.match(line).group(2) == 'L':
             left_hcv=reg_hcv.match(line).group(1)
@@ -195,12 +203,17 @@ if 's' in files_found:
             tiv=reg_tiv.match(line).group(2)
          if args.verbose:
             print('  eTIV: %4.1f' % (float(reg_tiv.match(line).group(2))))
+      if match_tbv:
+         if reg_tbv.match(line).group(1) == 'BrainSeg':
+            tbv=reg_tbv.match(line).group(2)
+         if args.verbose:
+            print(' BrVol: %4.1f' % (float(reg_tbv.match(line).group(2))))
       whichline += 1
    try:
-      hcvfile.write(subject_id + "," + left_hcv + "," + right_hcv + "," + tiv + "\n")
+      hcvfile.write(subject_id + "," + left_hcv + "," + right_hcv + "," + tbv + "," + tiv + "\n")
       hcvfile.close()
    except (OSError, NameError) as e:
-      sys.stdout.write(subject_id + "," + left_hcv + "," + right_hcv + "," + tiv + "\n")
+      sys.stdout.write(subject_id + "," + left_hcv + "," + right_hcv + "," + tbv + "," + tiv + "\n")
 
 
 ##-----------------------------------------------------------------------------
