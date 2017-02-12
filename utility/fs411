@@ -6,13 +6,13 @@
 #
 
 ## Output:
-#    Depending on the arguments provided at presentation, metadata derived
-#    from the Freesurfer process, see arguments for details
-#    This is NOT for extracting subject data like brain volumes.
-#    It is for extracting data concerning the FreeSurfer processing itself.
+#    Depending on the arguments provided at presentation, data derived
+#    from the Freesurfer process, see arguments for details.
+#    This is for extracting subject data like brain volumes, and for
+#    metadata concerning the freesurfer process that generated them.
 
 ## We expect to find certain folders and files within any of these structures.
-## Differences in filecounts here can indicate failure at differnent places
+## Differences in filecounts here can indicate failure at different places
 ## through the pipeline.
 #    ./bem             ?
 #    ./label           ~69 files (.ctab, .annot, .label) containing labels for regions within images
@@ -34,9 +34,15 @@ import argparse       # A framework for parsing command-line arguments
 import os             # For digging through directories and files
 import re             # Regular expression support
 import datetime       # To handle dates and times
+import csv            # To write the final csv mrs file easily
+from collections import OrderedDict
 from datetime import date
 from datetime import timedelta
+from dateutil import parser
 import time
+
+# Local file containing dictionaries of FreeSurfer variables
+from mrs_dicts import *
 
 ##------------------------------------------------------------------------------
 ##-- Define constants and globals for later use
@@ -119,12 +125,12 @@ def get_fsversion(verbosity, sparsity=False):
 
 
 ##-- Extract the elapsed time
-def get_fselapsed(verbosity, sparsity=False):
+def get_fstime(verbosity, timetype="elapsed", sparsity=False):
 	cmdfile = subjectroot + neededfiles['cmd']
 	if not os.path.isfile(cmdfile):
 		return("N/A")
 	timestrings = []
-	tfstring="%a %b %d %X %Z %Y"
+	#tfstring="%a %b %d %X %Z %Y"
 	first_time=datetime.datetime.now()
 	last_time=datetime.datetime.now()
 	this_time=datetime.datetime.now()
@@ -135,10 +141,12 @@ def get_fselapsed(verbosity, sparsity=False):
 		mat_tstamp = reg_tstamp.match(line)
 		if mat_tstamp:
 			if n == 0:
-				first_time = datetime.datetime.strptime(mat_tstamp.group('stmp'), tfstring)
+				#first_time = datetime.datetime.strptime(mat_tstamp.group('stmp'), tfstring)
+				first_time = parser.parse(mat_tstamp.group('stmp'))
 				last_time = first_time
 			n+=1
-			this_time = datetime.datetime.strptime(mat_tstamp.group('stmp'), tfstring)
+			#this_time = datetime.datetime.strptime(mat_tstamp.group('stmp'), tfstring)
+			this_time = parser.parse(mat_tstamp.group('stmp'))
 			td_small = this_time - last_time
 			td_large = this_time - first_time
 			if verbosity == "long":
@@ -153,7 +161,12 @@ def get_fselapsed(verbosity, sparsity=False):
 			timestrings.append("{:5.0f}".format( td_large.total_seconds() ))
 		else:
 			timestrings.append("{:5.0f} seconds ({:2.1f} hrs)".format( td_large.total_seconds(), td_large.total_seconds()/3600.0 ))
-	return(''.join(timestrings))
+	if(timetype == "elapsed"):
+		return(''.join(timestrings))
+	if(timetype == "begin"):
+		return(first_time.strftime("%d%b%y") + ":00:00:00")
+	if(timetype == "end"):
+		return(last_time.strftime("%d%b%y") + ":00:00:00")
 	## / end get_fselapsed() function
 
 
@@ -169,7 +182,7 @@ def get_fshostname(verbosity, sparsity=False):
 				retval = mat_machine.group('machine')
 		f.close()
 	return(retval)
-	## / end get_hostname() function
+	## / end get_fshostname() function
 
 
 ##-- Extract the username under which freesurfer was run
@@ -184,7 +197,130 @@ def get_fsusername(verbosity, sparsity=False):
 				retval = mat_username.group('username')
 		f.close()
 	return(retval)
-	## / end get_username() function
+	## / end get_fsusername() function
+
+
+##-- Extract a/all volume(s)
+def get_fsvolume(whichvol, sparsity=False):
+	retval = ""
+	#STUB
+	return(retval)
+	## / end get_fsvolume() function
+
+
+##-- Retrieve data from FreeSurfer stats file
+def get_fsdata(statsfile):
+	mydict = {}
+	if os.path.isfile(subjectroot + neededfiles[statsfile]):
+		# Each stats file has two sections with data, a head section and
+		# a body section. We need to check and mine both.
+		reg_measurehead = re.compile(r'^#\s+Measure\s+[\w_\-]+,\s+(?P<Name>[\w_\-]+),.+?(?P<Volume>[\d\.]+),\s(?P<Dim>.+)$')
+		reg_measurebody = re.compile(r'^\s*\d+\s+\d+\s+\d+\s+(?P<Volume>[\d\.]+)\s+(?P<Name>[\w_\-]+).+')
+		reg_measurecort = re.compile(r'^(?P<Name>[\w_\-]+)\s+\d+\s+\d+\s+(?P<Volume>[\d\.]+).+')
+		f = open(subjectroot + neededfiles[statsfile])
+		for line in f:
+			linetype=""
+			mat_measurehead = reg_measurehead.match(line)
+			mat_measurebody = reg_measurebody.match(line)
+			mat_measurecort = reg_measurecort.match(line)
+			if mat_measurehead:
+				linetype="HEAD"
+				#print("HEAD: {Name}={Volume}".format(Name=mat_measurehead.group('Name'), Volume=mat_measurehead.group('Volume')))
+				mydict[mat_measurehead.group('Name')] = mat_measurehead.group('Volume')
+			if mat_measurebody:
+				linetype="BODY"
+				#print("BODY: {Name}={Volume}".format(Name=mat_measurebody.group('Name'), Volume=mat_measurebody.group('Volume')))
+				mydict[mat_measurebody.group('Name')] = mat_measurebody.group('Volume')
+			if mat_measurecort:
+				linetype="CORT"
+				#print("CORT: {Name}={Volume}".format(Name=mat_measurecort.group('Name'), Volume=mat_measurecort.group('Volume')))
+				mydict[mat_measurecort.group('Name')] = mat_measurecort.group('Volume')
+#			if linetype == "":
+#				print("No match for \"{0}\"".format(line))
+		f.close()
+	return(mydict)
+
+
+##-- Write fields and values to csv file
+def outputcsv(mynames, myvalues, myfile):
+	file_is_new = not os.path.isfile(myfile)
+	with open(myfile, 'a') as csvfile:
+		mywriter = csv.writer(csvfile, delimiter=",", quotechar="\"", quoting=csv.QUOTE_MINIMAL)
+		if file_is_new:
+			mywriter.writerow(mynames)
+		mywriter.writerow(myvalues)
+
+
+##-- Save out the freesurfer data in tabular format for a single fs file
+def write_fsfile(outfilename, fstype):
+	myname = outfilename[:-4]+'_'+fstype+outfilename[-4:]
+	rowNames = []
+	rowData = []
+	for n, d in get_metadict(subjectid, get_fstime("short", "end")).items():
+		rowNames.append(n)
+		rowData.append(d)
+	
+	if fstype == 'aseg':
+		mydata = get_fsdata(fstype)
+	elif fstype == 'wmparc':
+		mydata = get_fsdata(fstype)
+	elif fstype == 'aparc':
+		mydata = OrderedDict([(k+'_L',v) for k,v in get_fsdata('aparc1l').items()])
+		mydata.update(OrderedDict([(k+'_R',v) for k,v in get_fsdata('aparc1r').items()]))
+	
+	for n, d in mydata.items():
+		rowNames.append(n)
+		rowData.append(d)
+	
+	print("Writing raw {ft} data for {sid} to {fp}".format( ft=fstype, sid=subjectid, fp=myname ))
+	outputcsv(rowNames, rowData, myname)
+
+
+##-- Order the variables and their labels for an mrs-formatted file
+def write_mrsfile(wholedict, csvmrsfile):
+	rowNames = []
+	rowData = []
+	for n, d in get_mrsmeta_dict(subjectid, get_fstime("short", "end")).items():
+		rowNames.append(n)
+		rowData.append(d)
+	for n, d in get_mrs_dict().items():
+		# each key-value pair looks like 'mrs#':'Name'
+		# append the identifier (key) to the beginning of the mrs list
+		rowNames.append(n)
+		# and find the appropriate data value to match it
+		if wholedict.get(d, "FAIL") != "FAIL":
+			# Successful lookup of mrs number from FreeSurfer description
+			rowData.append(wholedict.get(d, "FAIL"))
+		else:
+			if d == "ThalamusProper_T":
+				# This exception is necessary to match the tweaked mrs variable names
+				lval = float(wholedict.get('Left-Thalamus-Proper', "0.0")) # Match at Left-***
+				rval = float(wholedict.get('Right-Thalamus-Proper', "0.0")) # Match at Right-***
+				rowData.append("{:0.2f}".format(lval + rval))
+			elif d[-2:] == "_T":
+				# We have a "total" field, so we need to find the left and right fields to add for it
+				if wholedict.get(d[:-2] + '_L', "FAIL") == "FAIL":
+					if wholedict.get('Left-' + d[:-2], "FAIL") == "FAIL":
+						print("--== ERROR: {4}-{0}: {1} but no {2} or {3}. Setting it to 0.0".format(n, d, d[:-2] + '_L', 'Left-' + d[:-2], subjectid))
+						lval = 0.0 # No match, actual failure
+					else:
+						lval = float(wholedict.get('Left-' + d[:-2], "0.0")) # Match at Left-***
+				else:
+					lval = float(wholedict.get(d[:-2] + '_L', "0.0")) # Match at ***_L
+				if wholedict.get(d[:-2] + '_R', "FAIL") == "FAIL":
+					if wholedict.get('Right-' + d[:-2], "FAIL") == "FAIL":
+						print("--== ERROR: {4}-{0}: {1} but no {2} or {3}. Setting it to 0.0".format(n, d, d[:-2] + '_R', 'Right-' + d[:-2], subjectid))
+						rval = 0.0 # No match, actual failure
+					else:
+						rval = float(wholedict.get('Right-' + d[:-2], "0.0")) # Match at Right-***
+				else:
+					rval = float(wholedict.get(d[:-2] + '_R', "0.0")) # Match at ***_R
+				rowData.append("{:0.2f}".format(lval + rval))
+			else:
+				rowData.append("0.00")
+	print("Writing standard mrs data for {sid} to {fp}".format( sid=subjectid, fp=csvmrsfile ))
+	outputcsv(rowNames, rowData, csvmrsfile)
+
 
 
 ##------------------------------------------------------------------------------
@@ -193,17 +329,19 @@ def get_fsusername(verbosity, sparsity=False):
 
 
 ##-- Parse command-line arguments
-parser = argparse.ArgumentParser(description='Dig for information from FreeSurfer output')
-parser.add_argument('rootfolder', help='Provide a subject\'s root FreeSurfer output folder.')
-parser.add_argument('-s', '--sparse', action='store_true', help='Avoid printing the ID, keep it sparse.')
-parser.add_argument('-v', '--version_short', action='store_true', help='Output the dot version of FreeSurfer used.')
-parser.add_argument('-V', '--version_long', action='store_true', help='Output the full version of FreeSurfer used.')
-parser.add_argument('-t', '--time_short', action='store_true', help='Output the total elapsed time of the whole run.')
-parser.add_argument('-T', '--time_long', action='store_true', help='Output the individual timings of each step.')
-parser.add_argument('-u', '--username', action='store_true', help='Output the user account running freesurfer.')
-parser.add_argument('-m', '--machine', action='store_true', help='Output the host on which this subject was run.')
-parser.add_argument('-c', '--completion', action='store_true', help='Output success or failure of the job.')
-args = parser.parse_args()
+argparser = argparse.ArgumentParser(description='Dig for information from FreeSurfer output')
+argparser.add_argument('rootfolder', help='Provide a subject\'s root FreeSurfer output folder.')
+argparser.add_argument('-s', '--sparse', action='store_true', help='Avoid printing the ID, keep it sparse.')
+argparser.add_argument('-v', '--version_short', action='store_true', help='Output the dot version of FreeSurfer used.')
+argparser.add_argument('-V', '--version_long', action='store_true', help='Output the full version of FreeSurfer used.')
+argparser.add_argument('-t', '--time_short', action='store_true', help='Output the total elapsed time of the whole run.')
+argparser.add_argument('-T', '--time_long', action='store_true', help='Output the individual timings of each step.')
+argparser.add_argument('-u', '--username', action='store_true', help='Output the user account running freesurfer.')
+argparser.add_argument('-m', '--machine', action='store_true', help='Output the host on which this subject was run.')
+argparser.add_argument('-c', '--completion', action='store_true', help='Output success or failure of the job.')
+argparser.add_argument('--mrsfile', help='Generate an ARIC-style MRS document to the csv file specified.')
+argparser.add_argument('--plus', action='store_true', help='If mrsfile is also specified, put ALL available data into it, with FreeSurfer names, not mrs.')
+args = argparser.parse_args()
 
 subjectroot = os.path.abspath(args.rootfolder)
 
@@ -244,14 +382,14 @@ elif args.version_long:
 ##-- Deal with elapsed times
 if args.time_short:
 	if args.sparse:
-		print( get_fselapsed("short", args.sparse) )
+		print( get_fstime("short", "elapsed", args.sparse) )
 	else:
-		print("{sid} : {elapsed}".format( sid=subjectid, elapsed=get_fselapsed("short", args.sparse) ))
+		print("{sid} : {elapsed}".format( sid=subjectid, elapsed=get_fstime("short", "elapsed", args.sparse) ))
 elif args.time_long:
 	if args.sparse:
-		print( get_fselapsed("long", args.sparse) )
+		print( get_fstime("long", "elapsed", args.sparse) )
 	else:
-		print("{sid}\n{elapsed}".format( sid=subjectid, elapsed=get_fselapsed("long", args.sparse) ))
+		print("{sid}\n{elapsed}".format( sid=subjectid, elapsed=get_fstime("long", "elapsed", args.sparse) ))
 
 
 ##-- Determine the completion status
@@ -285,7 +423,21 @@ if args.machine:
 		print( get_fshostname("short", args.sparse) )
 	else:
 		print("{sid} : {hostname}".format( sid=subjectid, hostname=get_fshostname("short", args.sparse) ))
-			
+
+
+##-- Generate whole csv with bunches of data
+if args.mrsfile:
+	# Merge dictionaries
+	dict_whole = get_fsdata('aseg')
+	dict_whole.update(get_fsdata('wmparc'))
+	dict_whole.update(OrderedDict([(k+'_L',v) for k,v in get_fsdata('aparc1l').items()]))
+	dict_whole.update(OrderedDict([(k+'_R',v) for k,v in get_fsdata('aparc1r').items()]))
 	
+	if args.plus:
+		write_fsfile(args.mrsfile, 'aseg')
+		write_fsfile(args.mrsfile, 'wmparc')
+		write_fsfile(args.mrsfile, 'aparc')
+	else:
+		write_mrsfile(dict_whole, args.mrsfile)
 
 #print("Done!")
