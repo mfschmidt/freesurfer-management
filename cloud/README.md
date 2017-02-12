@@ -14,7 +14,11 @@ Everything else stems from this. Use the "regularly.sh" script to manage anythin
 
 ## 2. Regularly
 
-The regularly.sh script first ensures the queue is full so we remain efficient users of computing resources. It then checks for any completed jobs. The completed jobs must be packaged up and moved from the supercomputer. Its job, remember, is to process files not to store them.
+The regularly.sh script first ensures the queue is full so we remain efficient users of computing resources. It then checks for any completed jobs. The completed jobs must be packaged up and moved from the supercomputer. Its job, remember, is to process files not to store them. While reading the script, note that we redirect all output to log files from here. This makes the pre- and post- scripts below cleaner because they don't have to worry about logging. And it makes them more versatile so you can call them from the command line any time and get their output right at the console, without clogging your logs. You can always do both while troubleshooting as follows:
+
+    top_off_queue.sh | tee -a ~/log/logfile.log
+    
+The "tee" command causes the output from top_off_queue.sh to both be sent to the screen and be (-a) appended to the file specified.
 
 ### 2a. Top off
 
