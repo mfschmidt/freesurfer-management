@@ -4,7 +4,7 @@ INBOXDIR=/ptmp/$USER/inbox
 
 ##-------------------------------------------------------------------------
 ## Check for open slots in the queue and fill them if possible
-## Anything found in $INBOXDIR with a *.pbs_script extension
+## Anything found in $INBOXDIR with a *.pbs extension
 ## will be queued and run.
 
 # First, determine state of things
@@ -18,7 +18,7 @@ msg2=""
 # Second, run through possible jobs and queue some
 jobs_to_go=0
 cursor=0
-for job in $(2>/dev/null ls -1f $INBOXDIR/*.pbs_script);
+for job in $(2>/dev/null ls -1f $INBOXDIR/*.pbs);
 do
 	(( cursor += 1 ))
 	if [ $empty_slots -gt 0 ];
