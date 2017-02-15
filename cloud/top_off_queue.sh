@@ -12,7 +12,7 @@ MAX_QUEUED=40
 num_queued=$(qstat | grep $USER | wc -l)
 empty_slots=$(( MAX_QUEUED - num_queued - 1 ))
 
-msg1="$num_queued of $MAX_QUEUED slots full, leaving us $empty_slots"
+msg1="$num_queued, of $MAX_QUEUED slots full, leaving us $empty_slots"
 msg2=""
 
 # Second, run through possible jobs and queue some
@@ -23,7 +23,9 @@ do
 	(( cursor += 1 ))
 	if [ $empty_slots -gt 0 ];
 	then
-		msg2="${msg2}$cursor. ${job:18:7}\n"
+		INFILE="${job##*/}"
+		INFILE="${INFILE%%.*}"
+		msg2="${msg2}$cursor. ${INFILE}\n"
 		qsub $job
 		mv $job $job.queued
 	else
