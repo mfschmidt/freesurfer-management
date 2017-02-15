@@ -27,3 +27,18 @@ Topping off the queue is simply checking to see if the computer has capacity to 
 ### 2b. Clean up
 
 Cleaning up has a few complexities to deal with. First, we try to ensure that everything that needs to be done for each subject is handled in the pbs script, created on the liaison side. But the pbs job generates two log files that are not complete until the job is done. Cleaning up the job's log files cannot be done by the job itself. The package_completed_jobs.sh script takes care of those log files as well as getting the output off of the supercomputer and onto a machine designed more for long term file storage.
+
+## 3. Aliases
+
+Aliases are not strictly necessary, but they can help you to login and get rapid snapshots of what's going on with a minimum of keystrokes. I have put the following lines into my /home/$USER/.bashrc file. The .bashrc file gets sourced every time you log in to a linux system, so by putting lines here, it's like typing them into your shell automatically every time you login.
+
+    alias q_waiting='echo "$(ls -1 /ptmp/r1774/inbox | grep pbs | wc -l) to finish"'
+    alias q_complete='echo "$(ls -1 /ptmp/r1774/outbox | grep pickup | wc -l) complete, to download"'
+    alias q_running='echo "$(qstat | grep r1774 | wc -l) running:"'
+    alias q='q_waiting; q_complete; q_running; qstat | grep r1774'
+
+Now, I can just type the following at the command prompt and see how many subjects are queued up, how many have been finished but not downloaded to the liaison machine yet, and how many are currently running. And that's followed by a list of all jobs running under my user account.
+
+    $ q
+
+Quite easy!
