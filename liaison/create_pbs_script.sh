@@ -17,17 +17,17 @@ FSS="/home/ums/${REM_USER}/subjects"
 # You can change where the script is stored here
 SCRIPT="./${SID}-freesurfer.pbs"
 
-echo -e "#!/usr/bin/bash\n" >> $SCRIPT
+echo -e "#!/bin/bash\n" >> $SCRIPT
 echo -e "#PBS -N ${SID}-FS6" >> $SCRIPT
 echo -e "#PBS -l nodes=1:ppn=1,mem=4gb\n" >> $SCRIPT
 echo -e "#PBS -e ${FSO}/${SID}.errors.log" >> $SCRIPT
-echo -e "#PBS -o ${FSO}/${SID}.stdout.log" >> $SCRIPT
+echo -e "#PBS -o ${FSO}/${SID}.stdout.log\n" >> $SCRIPT
 echo -e "export FREESURFER_HOME=${FSH}" >> $SCRIPT
 echo -e "export SUBJECTS_DIR=${FSS}" >> $SCRIPT
 echo -e "source ${FSH}/SetUpFreeSurfer.sh\n" >> $SCRIPT
 # The IMG parameter expansion just strips the file portion from the path to the image.
 echo -e "recon-all -i ${FSQ}/${IMG##*/} -subjid ${SID}" >> $SCRIPT
 echo -e "recon-all -subjid ${SID} -all -hippo-subfields -brainstem-structures\n" >> $SCRIPT
-echo -e "mv ${SCRIPT##*/}.queued ${SCRIPT##*/}.complete" >> $SCRIPT
+echo -e "mv ${SCRIPT##*/}.queued ${SCRIPT##*/}.complete\n" >> $SCRIPT
 
 echo "Script ${SCRIPT} complete for subject ${SID}."
