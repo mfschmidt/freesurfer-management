@@ -27,7 +27,7 @@ echo -e "export SUBJECTS_DIR=${FSS}" >> $SCRIPT
 echo -e "source ${FSH}/SetUpFreeSurfer.sh\n" >> $SCRIPT
 # The IMG parameter expansion just strips the file portion from the path to the image.
 echo -e "recon-all -i ${FSQ}/${IMG##*/} -subjid ${SID}" >> $SCRIPT
-echo -e "recon-all -subjid ${SID} -all -hippo-subfields -brainstem-structures\n" >> $SCRIPT
+echo -e "recon-all -subjid ${SID} -all -hippocampal-subfields-T1 -brainstem-structures\n" >> $SCRIPT
 echo -e "mv ${SCRIPT##*/}.queued ${SCRIPT##*/}.complete\n" >> $SCRIPT
 
 echo "Script ${SCRIPT} complete for subject ${SID}."
