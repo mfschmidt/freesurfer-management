@@ -17,6 +17,7 @@ msg2=""
 
 # Second, run through possible jobs and queue some
 jobs_to_go=0
+freshly_queued=0
 cursor=0
 for job in $(2>/dev/null ls -1f $INBOXDIR/*.pbs);
 do
@@ -28,6 +29,7 @@ do
 		msg2="${msg2}$cursor. ${INFILE}\n"
 		qsub $job
 		mv $job $job.queued
+		(( freshly_queued += 1 ))
 	else
 		(( jobs_to_go += 1 ))
 	fi
@@ -36,7 +38,7 @@ done
 
 msg3="$jobs_to_go jobs left to go.\n"
 
-if [[ "$jobs_to_go" == "0" ]]; then
+if [[ "$jobs_to_go" == "0" && "$freshly_queued" == "0" ]]; then
 	printf "$(date) : no work\n"
 else
 	printf "$(date) : ${msg1}, ${msg3}${msg2}"
