@@ -6,23 +6,25 @@
 # up those files and move them where they can be easily retrieved.
 
 T=/ptmp/$USER
-buf=$T/tarbuffer/
+buf=$T/tarbuffer
 
-for f in $(2>/dev/null ls -1f $T/outbox/batched.*);
+for f in $(2>/dev/null ls -1f $T/outbox/*.complete);
 do
 	# We use 7 character ID numbers for each subject; this extracts it from the filename.
 	# We then use it as the main identifier for everything.
-	sid=${f:27:7}
+	filename="${f##*/}"
+	sid="${filename%%-*}"
 	echo "${sid}: (${f})"
 	# Move everything related to this completed subject into a buffer directory
 	# Tar it, hash it, and leave it for pickup
 	mkdir ${buf}
 	cd ${buf}
-	find ~/ $T/inbox/ -noleaf -type f -name "${sid}*" -exec mv {} ${buf} \;
+	find $T/outbox -noleaf -type f -name "${sid}*" -exec mv {} ${buf}/ \;
 	tar -czvpf $T/outbox/${sid}.logs.tgz ${sid}*
+	tar -czvpf $T/outbox/${sid}.fs6.tgz /home/ums/r1774/subjects/${sid}
 	cd ${T}/outbox
 	md5sum ${sid}.logs.tgz >> $f
-	mv ${f} ${f/batched/pickup}
+	mv "${f}" "${f}.pickup"
 	# Then cover our tracks to keep things tidy
-	rm -rf $buf
+	rm -rf --verbose $buf
 done
