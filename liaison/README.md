@@ -25,4 +25,12 @@ and be logged in without all the mess and fuss of specifying ports and servers a
 
 Compute clusters typically are set up with a queuing system to manage the jobs and the hardware allocation for them. This script writes another script that informs the cluster what kind of environment to set up, what hardware requirements are necessary, and what to execute.
 
+### do_push.sh
+
+Push all necessary files up to the cluster from the liaison machine through an ssh tunnel and the scp command. As written, the script finds all *.tgz files in the specified folder and secure copies them to the specified folder on the remote machine. You will need to edit the script to make sure it specifies your folders correctly.
+
+### do_pull.sh
+
+Pulls all completed files from the cluster down to the liaison machine. This script queries the cluster with the ls command over ssh to determine what to download, then it secure copies results down to its own disks and removes the copy on the cluster.
+
 
