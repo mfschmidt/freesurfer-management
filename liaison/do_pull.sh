@@ -3,6 +3,7 @@
 # Download completed work from the supercomputer, then put it away where it goes.
 
 # The path where jobs are queued up on the supercomputer
+INITIAL_PWD=$(pwd)
 REM_OUTBOX=/ptmp/r1774/outbox
 LOC_INBOX=/mri/test.fs600
 
@@ -15,15 +16,42 @@ for item in $REM_LIST; do
 done
 echo "Found ${REM_ACTUAL} on the cluster."
 
+# Loop through completed packages on the server
 COUNTER=0
 for item in $REM_LIST; do
+	cd ${LOC_INBOX}
+	
+	# First, download results
 	(( COUNTER += 1 ))
-	echo "${COUNTER}. ${item%%-*}:"
-	scp cluster:$REM_OUTBOX/${item%%-*}.*.tgz $LOC_INBOX/
+	SID=${item%%-*}
+	echo "${COUNTER}. ${SID}:"
+	scp cluster:${REM_OUTBOX}/${SID}.*.tgz ${LOC_INBOX}/
 	if (($? == 0)); then
-		echo "  issuing cloud command, \"rm -rf ${REM_OUTBOX}/${item%%-*}.*.tgz\""
-		ssh cluster "rm -rf ${REM_OUTBOX}/${item%%-*}.*.tgz"
+		scp cluster:${REM_OUTBOX}/${SID}-freesurfer.pbs.complete.pickup ${LOC_INBOX}/
+		echo "  success; issuing cloud command, \"rm -rf ${REM_OUTBOX}/${SID}.*.tgz\""
+		ssh cluster "rm -rf ${REM_OUTBOX}/${SID}.*.tgz"
 	else
 		echo "  secure copy failed. NOT deleting cloud files."
 	fi
+	
+	# Second, check for consistency
+	SHA_OK=$(sha256sum -c ${SID}-freesurfer.pbs.complete.pickup 2>&1 | grep OK | wc -l)
+	if [ "$SHA_OK" == "1" ]; then
+		echo "${item} appears to have been corrupted. NOT unpackaging it."
+		# continue skips the rest of this $item, and moves on to the next in the list
+		continue
+	fi
+	
+	# Third, unpackage them into their new homes
+	#mkdir ${LOC_INBOX}/${SID}
+	cd ${LOC_INBOX}
+	tar -xvzf ${SID}.fs6.tgz
+	if (($? == 0)); then
+		rm ./${SID}.fs6.tgz
+	fi
+	cd ${SID}/scripts
+	tar -xvzf ${LOC_INBOX}/${SID}.logs.tgz
+	mv ${LOC_INBOX}/${SID}-freesurfer.pbs.complete.pickup ${LOC_INBOX}/${SID}/${SID}.hash
 done
+
+cd ${INITIAL_PWD}
