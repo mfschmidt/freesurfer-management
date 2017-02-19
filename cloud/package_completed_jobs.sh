@@ -23,7 +23,7 @@ do
 	tar -czvpf $T/outbox/${sid}.logs.tgz ${sid}*
 	tar -czvpf $T/outbox/${sid}.fs6.tgz /home/ums/r1774/subjects/${sid}
 	cd ${T}/outbox
-	md5sum ${sid}.logs.tgz >> $f
+	sha256sum ${sid}.logs.tgz >> $f
 	mv "${f}" "${f}.pickup"
 	# Then cover our tracks to keep things tidy
 	rm -rf --verbose $buf
