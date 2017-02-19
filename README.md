@@ -17,3 +17,10 @@ The utility scripts are used to interpret and manage the processed FreeSurfer da
 
 
 The basic idea is that each subject will take about a day to process, but I don't want to manually log in and queue up the next one each time one finishes. So this system allows me to queue up ALL subjects (as many as I can fit on a disk) for an entire project. The cloud system can check its queue and grab a new job whenever it has capacity, with no interaction from me. This way, I can make better use of my time over the months it can take to run many hundreds of subjects.
+
+## Notes:
+
+These scripts represent a balance between good software engineering practice and rapidly automating tasks. For example, most paths are specific to our configuration and will not work for you as written. We have tried to put all of the paths at the top of the scripts rather than sprinkled throughout as hard-coded strings. But we haven't gone so far as to create an initialization package or setup script to define them all and allow their administration centrally.
+
+These scripts have cost us time in development, saved us time overall in processing and execution, and we hope they make other researchers' lives easier. But they are not polished commercial software and will require a minimal investment for their correct usage. I imagine anyone using FreeSurfer is doing research, and therefore appreciates they need to understand your methods, read through the scripts and know what they're doing in the first place rather than just executing code and hoping for the best.
+
