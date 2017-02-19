@@ -38,6 +38,7 @@ for item in $REM_LIST; do
 	SHA_OK=$(sha256sum -c ${SID}-freesurfer.pbs.complete.pickup 2>&1 | grep OK | wc -l)
 	if [ "$SHA_OK" == "1" ]; then
 		echo "${item} appears to have been corrupted. NOT unpackaging it."
+		echo "Please manually double check file contents on cluster and liaison computers."
 		# continue skips the rest of this $item, and moves on to the next in the list
 		continue
 	fi
