@@ -5,7 +5,7 @@
 # So, as a separate entity from the pbs job, we need to package
 # up those files and move them where they can be easily retrieved.
 
-T=/ptmp/ums/$USER
+T=/ptmp/$USER
 buf=$T/tarbuffer
 
 # Check FreeSurfer variable, supplying a default if it's not set
