@@ -1,7 +1,7 @@
 #/bin/bash
 
 BIN=/home/ums/$USER/bin
-LOG=/home/$USER/log
+LOG=/home/ums/$USER/log
 
 # Every hour, as specified in the crontab,
 
