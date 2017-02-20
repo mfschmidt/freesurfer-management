@@ -26,7 +26,8 @@ do
 	cd ${buf}
 	find $T/outbox -noleaf -type f -name "${sid}*" -exec mv {} ${buf}/ \;
 	tar -czvpf $T/outbox/${sid}.logs.tgz ${sid}*
-	tar -czvpf $T/outbox/${sid}.fs6.tgz ${SUBJECTS_DIR}/${sid}
+	cd ${SUBJECTS_DIR}
+	tar -czvpf $T/outbox/${sid}.fs6.tgz ${sid}
 	cd ${T}/outbox
 	sha256sum ${sid}.logs.tgz >> $f
 	mv "${f}" "${f}.pickup"
