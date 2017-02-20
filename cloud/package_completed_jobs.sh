@@ -5,8 +5,13 @@
 # So, as a separate entity from the pbs job, we need to package
 # up those files and move them where they can be easily retrieved.
 
-T=/ptmp/$USER
+T=/ptmp/ums/$USER
 buf=$T/tarbuffer
+
+# Check FreeSurfer variable, supplying a default if it's not set
+if [ "$SUBJECTS_DIR" == "" ]; then
+	SUBJECTS_DIR="/home/ums/r1774/subjects"
+fi
 
 for f in $(2>/dev/null ls -1f $T/outbox/*.complete);
 do
@@ -21,7 +26,7 @@ do
 	cd ${buf}
 	find $T/outbox -noleaf -type f -name "${sid}*" -exec mv {} ${buf}/ \;
 	tar -czvpf $T/outbox/${sid}.logs.tgz ${sid}*
-	tar -czvpf $T/outbox/${sid}.fs6.tgz /home/ums/r1774/subjects/${sid}
+	tar -czvpf $T/outbox/${sid}.fs6.tgz ${SUBJECTS_DIR}/${sid}
 	cd ${T}/outbox
 	sha256sum ${sid}.logs.tgz >> $f
 	mv "${f}" "${f}.pickup"
