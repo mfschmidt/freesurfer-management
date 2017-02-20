@@ -20,22 +20,26 @@ echo "Found ${LOC_ACTUAL} locally."
 if [[ "$LOC_ACTUAL" -gt "0" ]] && [[ "$REM_ACTUAL" -lt "$REM_LIMIT" ]]
 then
 	# Update the state of the queues	
-	REM_ACTUAL=$(ssh cluster "ls -1 $REM_INBOX/*.tgz | wc -l")
-	LOC_ACTUAL=$(ls -1 $LOC_INBOX/*.tgz | wc -l)
+	REM_ACTUAL=$(ssh cluster "2>/dev/null ls -1 $REM_INBOX/*.tgz | wc -l")
+	LOC_ACTUAL=$(2>/dev/null ls -1 $LOC_INBOX/*.tgz | wc -l)
 	COUNTER=1
 	# Upload the appropriate number of subjects	
 	NEED=$(($REM_LIMIT-$REM_ACTUAL))
-	for f in $(ls -1 $LOC_INBOX/*.tgz | head -${NEED})
+	for f in $(2>/dev/null ls -1 $LOC_INBOX/*.tgz | head -${NEED})
 	do
 		cd ${LOC_INBOX}
 		echo "upload #${COUNTER}. $f"
 		scp ${f} cluster:${REM_INBOX}/
-		UNPACK_REP=$(ssh cluster "cd ${REM_INBOX}; tar -xzf ${f##*/}; rm ${f##*/}")
-		echo "-----"
-		echo $UNPACK_REP
-		echo "-----"
-		#Everything in the queue is a copy, not an original!! Removing from queue by deletion.
-		rm ${f}
+		SID=${f%%.*}
+		SID=${SID##*/}
+		scp ${SID}-freesurfer.pbs cluster:${REM_INBOX}/
+		ssh cluster "mkdir ${REM_INBOX}/${SID}; cd ${REM_INBOX}/${SID}; tar -xzf ../${f##*/}; rm ../${f##*/}"
+		#Everything in the queue is a copy, not an original!! Move them to ./QUEUED for manual deletion.
+		if [ ! -e ./QUEUED ]; then
+			mkdir ./QUEUED
+		fi
+		mv ${f} ./QUEUED/
+		mv ${SID}-freesurfer.pbs ./QUEUED/
 		cd -
 		COUNTER=$(($COUNTER+1))
 	done
