@@ -41,6 +41,8 @@ for item in $REM_LIST; do
 		echo "Please manually double check file contents on cluster and liaison computers."
 		# continue skips the rest of this $item, and moves on to the next in the list
 		continue
+	else
+		echo "Downloaded file hash checks out"
 	fi
 	
 	# Third, unpackage them into their new homes
