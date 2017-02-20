@@ -26,9 +26,11 @@ echo -e "export FREESURFER_HOME=${FSH}" >> $SCRIPT
 echo -e "export SUBJECTS_DIR=${FSS}" >> $SCRIPT
 echo -e "source ${FSH}/SetUpFreeSurfer.sh\n" >> $SCRIPT
 # The IMG parameter expansion just strips the file portion from the path to the image.
-echo -e "recon-all -i ${FSQ}/${IMG##*/} -subjid ${SID}" >> $SCRIPT
+echo -e "recon-all -i ${FSQ}/${SID}/${IMG##*/} -subjid ${SID}" >> $SCRIPT
 echo -e "recon-all -subjid ${SID} -all -hippocampal-subfields-T1 -brainstem-structures\n" >> $SCRIPT
 # Only AFTER everything is done, label the job complete
-echo -e "mv ${FSQ}/${SCRIPT##*/}.queued ${FSO}/${SCRIPT##*/}.complete\n" >> $SCRIPT
+echo -e "mv ${FSQ}/${SCRIPT##*/}.queued ${FSO}/${SCRIPT##*/}.complete" >> $SCRIPT
+# and clean up the source files
+echo -e "rm -rf ${FSQ}/${SID}\n" >> $SCRIPT
 
 echo "Script ${SCRIPT} complete for subject ${SID}."
