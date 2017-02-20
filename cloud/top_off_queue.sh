@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# qstat and qsub are in the user's path, but somehow aren't found running from cron
+# both are found at /opt/pbs/default/bin
+PATH=${PATH}:/opt/pbs/default/bin
+
 INBOXDIR=/ptmp/$USER/inbox
 
 ##-------------------------------------------------------------------------
@@ -9,7 +13,7 @@ INBOXDIR=/ptmp/$USER/inbox
 
 # First, determine state of things
 MAX_QUEUED=40
-num_queued=$(/opt/pbs/default/bin/qstat | grep $USER | wc -l)
+num_queued=$(qstat | grep $USER | wc -l)
 empty_slots=$(( MAX_QUEUED - num_queued - 1 ))
 
 msg1="$num_queued, of $MAX_QUEUED slots full, leaving us $empty_slots"
