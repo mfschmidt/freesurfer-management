@@ -52,12 +52,13 @@ for item in $REM_LIST; do
 	fi
 	
 	# Third, unpackage them into their new homes
-	tar -xvzf ${SID}.fs6.tgz
+	tar -xzf ${SID}.fs6.tgz
 	if (($? == 0)); then
 		rm ${SID}.fs6.tgz
 		rm ${SID}.fs6.hash
 	fi
 
+	echo "${SID} is complete!"
 done
 
 cd ${INITIAL_PWD}
