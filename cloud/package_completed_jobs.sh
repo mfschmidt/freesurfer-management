@@ -21,7 +21,8 @@ do
 	echo "${SID}: (${f})"
 
 	# Move all logs related to this subject to its FreeSurfer log directory
-	find $T/outbox -noleaf -type f -name "${SID}*" -exec mv {} ${SUBJECTS_DIR}/${SID}/scripts/ \;
+	mkdir ${SUBJECTS_DIR}/${SID}/logs
+	find $T/outbox -noleaf -type f -name "${SID}*" -exec mv {} ${SUBJECTS_DIR}/${SID}/logs/ \;
 
 	# Zip it all up into a single file
 	cd ${SUBJECTS_DIR}
