@@ -29,11 +29,13 @@ for item in $REM_LIST; do
 	scp cluster:${REM_OUTBOX}/${SID}.fs6.* ${LOC_INBOX}/
 	if (($? == 0)); then
 		echo "  removing cloud files: \"rm -rfv ${REM_OUTBOX}/${SID}.*.tgz\""
-		scp cluster:${REM_OUTBOX}/${SID}-freesurfer.pbs.complete.pickup ${LOC_INBOX}/
 		RMVD=$(ssh cluster "rm -rfv ${REM_OUTBOX}/${SID}.*")
+		SAVEIFS=$IFS
+		IFS=$'\n'
 		for RMF in $RMVD; do
 			echo "    $RMF"
 		done
+		IFS=$SAVEIFS
 	else
 		echo "  secure copy failed. NOT deleting cloud files. Please check manually."
 	fi
@@ -53,6 +55,7 @@ for item in $REM_LIST; do
 	tar -xvzf ${SID}.fs6.tgz
 	if (($? == 0)); then
 		rm ${SID}.fs6.tgz
+		rm ${SID}.fs6.hash
 	fi
 
 done
