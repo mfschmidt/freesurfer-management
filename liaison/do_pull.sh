@@ -14,7 +14,7 @@ REM_ACTUAL=0
 for item in $REM_LIST; do
 	(( REM_ACTUAL += 1 ))
 done
-echo "Found ${REM_ACTUAL} on the cluster."
+echo "Found ${REM_ACTUAL} pickups on the cluster."
 
 # Loop through completed packages on the server
 COUNTER=0
@@ -23,19 +23,23 @@ for item in $REM_LIST; do
 	
 	# First, download results
 	(( COUNTER += 1 ))
-	SID=${item%%-*}
+	# The subject's ID is everything left of the . in the empty SID.pickup filename
+	SID=${item%%.*}
 	echo "${COUNTER}. ${SID}:"
-	scp cluster:${REM_OUTBOX}/${SID}.*.tgz ${LOC_INBOX}/
+	scp cluster:${REM_OUTBOX}/${SID}.fs6.* ${LOC_INBOX}/
 	if (($? == 0)); then
+		echo "  removing cloud files: \"rm -rfv ${REM_OUTBOX}/${SID}.*.tgz\""
 		scp cluster:${REM_OUTBOX}/${SID}-freesurfer.pbs.complete.pickup ${LOC_INBOX}/
-		echo "  success; issuing cloud command, \"rm -rf ${REM_OUTBOX}/${SID}.*.tgz\""
-		ssh cluster "rm -rf ${REM_OUTBOX}/${SID}.*.tgz"
+		RMVD=$(ssh cluster "rm -rfv ${REM_OUTBOX}/${SID}.*")
+		for RMF in $RMVD; do
+			echo "    $RMF"
+		done
 	else
-		echo "  secure copy failed. NOT deleting cloud files."
+		echo "  secure copy failed. NOT deleting cloud files. Please check manually."
 	fi
 	
 	# Second, check for consistency
-	SHA_OK=$(sha256sum -c ${SID}-freesurfer.pbs.complete.pickup 2>&1 | grep OK | wc -l)
+	SHA_OK=$(sha256sum -c ${SID}.hash 2>&1 | grep OK | wc -l)
 	if [ "$SHA_OK" == "1" ]; then
 		echo "${item} appears to have been corrupted. NOT unpackaging it."
 		echo "Please manually double check file contents on cluster and liaison computers."
@@ -46,15 +50,11 @@ for item in $REM_LIST; do
 	fi
 	
 	# Third, unpackage them into their new homes
-	#mkdir ${LOC_INBOX}/${SID}
-	cd ${LOC_INBOX}
 	tar -xvzf ${SID}.fs6.tgz
 	if (($? == 0)); then
-		rm ./${SID}.fs6.tgz
+		rm ${SID}.fs6.tgz
 	fi
-	cd ${SID}/scripts
-	tar -xvzf ${LOC_INBOX}/${SID}.logs.tgz
-	mv ${LOC_INBOX}/${SID}-freesurfer.pbs.complete.pickup ${LOC_INBOX}/${SID}/${SID}.hash
+
 done
 
 cd ${INITIAL_PWD}
