@@ -6,7 +6,6 @@
 # up those files and move them where they can be easily retrieved.
 
 T=/ptmp/$USER
-buf=$T/tarbuffer
 
 # Check FreeSurfer variable, supplying a default if it's not set
 if [ "$SUBJECTS_DIR" == "" ]; then
@@ -18,19 +17,21 @@ do
 	# We use 7 character ID numbers for each subject; this extracts it from the filename.
 	# We then use it as the main identifier for everything.
 	filename="${f##*/}"
-	sid="${filename%%-*}"
-	echo "${sid}: (${f})"
-	# Move everything related to this completed subject into a buffer directory
-	# Tar it, hash it, and leave it for pickup
-	mkdir ${buf}
-	cd ${buf}
-	find $T/outbox -noleaf -type f -name "${sid}*" -exec mv {} ${buf}/ \;
-	tar -czvpf $T/outbox/${sid}.logs.tgz ${sid}*
+	SID="${filename%%-*}"
+	echo "${SID}: (${f})"
+
+	# Move all logs related to this subject to its FreeSurfer log directory
+	find $T/outbox -noleaf -type f -name "${SID}*" -exec mv {} ${SUBJECTS_DIR}/${SID}/scripts/ \;
+
+	# Zip it all up into a single file
 	cd ${SUBJECTS_DIR}
-	tar -czvpf $T/outbox/${sid}.fs6.tgz ${sid}
+	tar -czvpf $T/outbox/${SID}.fs6.tgz ${SID}
 	cd ${T}/outbox
-	sha256sum ${sid}.logs.tgz >> $f
-	mv "${f}" "${f}.pickup"
-	# Then cover our tracks to keep things tidy
-	rm -rf --verbose $buf
+
+	# Hash it and flag it for pickup by the liaison machine
+	sha256sum ${SID}.fs6.tgz >> ${SID}.fs6.hash
+	touch "${SID}.pickup"
+
+	# Then cover our tracks to keep things tidy and space-efficient
+	#rm -rf "${SUBJECTS_DIR}/${SID}"
 done
