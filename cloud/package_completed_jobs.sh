@@ -26,7 +26,7 @@ do
 
 	# Zip it all up into a single file
 	cd ${SUBJECTS_DIR}
-	tar -czvpf $T/outbox/${SID}.fs6.tgz ${SID}
+	tar -czpf $T/outbox/${SID}.fs6.tgz ${SID}
 	cd ${T}/outbox
 
 	# Hash it and flag it for pickup by the liaison machine
