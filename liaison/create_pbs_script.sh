@@ -19,7 +19,9 @@ SCRIPT="./${SID}-freesurfer.pbs"
 
 echo -e "#!/bin/bash\n" >> $SCRIPT
 echo -e "#PBS -N ${SID}-FS6" >> $SCRIPT
-echo -e "#PBS -l nodes=1:ppn=1,mem=4gb\n" >> $SCRIPT
+# Although 2GB was sufficient for all of FreeSurfer5, one set running FS6
+# was killed by the cluster for exceeding 4GB. Using 6GB to be safe for now.
+echo -e "#PBS -l nodes=1:ppn=1,mem=6gb\n" >> $SCRIPT
 echo -e "#PBS -e ${FSO}/${SID}.errors.log" >> $SCRIPT
 echo -e "#PBS -o ${FSO}/${SID}.stdout.log\n" >> $SCRIPT
 echo -e "export FREESURFER_HOME=${FSH}" >> $SCRIPT
