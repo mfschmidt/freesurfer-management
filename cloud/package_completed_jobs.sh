@@ -23,6 +23,7 @@ do
 	# Only package things up if the environment is as expected.
 	if [ ! -d "${SUBJECTS_DIR}/${SID}" ]; then
 		SUBJECTS_DIR="/home/ums/r1774/subjects"
+	fi
 	if [ ! -d "${SUBJECTS_DIR}/${SID}" ]; then
 		echo "Subject does not have any output at either /ptmp/r1774/subjects/ or /home/ums/r1774/subjects/."
 		echo "There is nothing to pack for subject ${SID}. Moving on to next subject without any attempt to package ${SID}."
