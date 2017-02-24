@@ -10,36 +10,49 @@ LOC_INBOX=/mri/queue
 
 # First, count how many waiting images are already on the supercomputer.
 # Using "cluster" depends on an entry in /home/$USER/.ssh/config defining it.
-REM_ACTUAL=$(ssh cluster "2>/dev/null ls -1 $REM_INBOX/*.tgz | wc -l")
-echo "Found ${REM_ACTUAL} on the cluster."
-
+REMOTES=$(ssh cluster "2>/dev/null ls -1 $REM_INBOX/*.tgz")
+REM_ACTUAL=$(echo "${REMOTES}" | wc -l)
 # Next, count how many waiting images are yet to be uploaded.
-LOC_ACTUAL=$(2>/dev/null ls -1 $LOC_INBOX/*.tgz | wc -l)
-echo "Found ${LOC_ACTUAL} locally."
+LOCALS=$(2>/dev/null ls -1 $LOC_INBOX/*.tgz)
+LOC_ACTUAL=$(echo "${LOCALS}" | wc -l)
+echo "Found ${REM_ACTUAL} on the cluster and ${LOC_ACTUAL} locally."
 
 if [[ "$LOC_ACTUAL" -gt "0" ]] && [[ "$REM_ACTUAL" -lt "$REM_LIMIT" ]]
 then
-	# Update the state of the queues	
-	REM_ACTUAL=$(ssh cluster "2>/dev/null ls -1 $REM_INBOX/*.tgz | wc -l")
-	LOC_ACTUAL=$(2>/dev/null ls -1 $LOC_INBOX/*.tgz | wc -l)
+	# Update the state of the queues, but we JUST did this above.
+	#REM_ACTUAL=$(ssh cluster "2>/dev/null ls -1 $REM_INBOX/*.tgz | wc -l")
+	#LOC_ACTUAL=$(2>/dev/null ls -1 $LOC_INBOX/*.tgz | wc -l)
 	COUNTER=1
 	# Upload the appropriate number of subjects	
 	NEED=$(($REM_LIMIT-$REM_ACTUAL))
-	for f in $(2>/dev/null ls -1 $LOC_INBOX/*.tgz | head -${NEED})
+	for f in $(echo "${LOCALS}" | head -${NEED})
 	do
+		g="${f##*/}"
+		SID=${g%%.*}
+		if grep -q "${SID}" <<< "${REMOTES}"; then
+			echo "${SID} already exists on cloud. Passing on it to avoid overwriting."
+			continue
+		fi
 		cd ${LOC_INBOX}
-		echo "upload #${COUNTER}. $f"
+		echo "upload #${COUNTER}. $g"
 		scp ${f} cluster:${REM_INBOX}/
-		SID=${f%%.*}
-		SID=${SID##*/}
 		scp ${SID}-freesurfer.pbs cluster:${REM_INBOX}/
-		ssh cluster "mkdir ${REM_INBOX}/${SID}; cd ${REM_INBOX}/${SID}; tar -xzf ../${f##*/}; rm ../${f##*/}"
+		ssh cluster "mkdir ${REM_INBOX}/${SID}; cd ${REM_INBOX}/${SID}; tar -xzf ../${g}; rm ../${g}"
 		#Everything in the queue is a copy, not an original!! Move them to ./QUEUED for manual deletion.
 		if [ ! -e ./QUEUED ]; then
 			mkdir ./QUEUED
 		fi
-		mv ${f} ./QUEUED/
-		mv ${SID}-freesurfer.pbs ./QUEUED/
+		h=$g
+		if [ -e ./QUEUED/${g} ]; then
+			APPENDER="0"
+			h="${SID}.${APPENDER}.tgz"
+			while [ -e ./QUEUED/${h} ]; do
+				((APPENDER += 1))
+				h="${SID}.${APPENDER}.tgz"
+			done
+		fi
+		mv ${g} ./QUEUED/${h}
+		mv ${SID}-freesurfer.pbs ./QUEUED/${SID}.${APPENDER}-freesurfer.pbs
 		cd -
 		COUNTER=$(($COUNTER+1))
 	done
