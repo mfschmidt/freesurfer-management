@@ -13,7 +13,7 @@ REM_USER="r1774"
 FSQ="/ptmp/${REM_USER}/inbox"
 FSO="/ptmp/${REM_USER}/outbox"
 FSH="/home/ums/${REM_USER}/freesurfer"
-FSS="/home/ums/${REM_USER}/subjects"
+FSS="/ptmp/${REM_USER}/subjects"
 # You can change where the script is stored here
 SCRIPT="./${SID}-freesurfer.pbs"
 
