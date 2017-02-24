@@ -7,6 +7,7 @@ import os
 import re
 import argparse
 from datetime import datetime
+import dateutil.parser
 
 # Globals
 errs = {}
@@ -93,11 +94,12 @@ def fs_donetime(donefiles):
     if os.path.isfile(os.path.join(D,f)):
       with open(os.path.join(D,f), 'r') as af:
         for line in af:
+          # dt = datetime.strptime(line[5:-1],"%a %b %d %H:%M:%S %Z %Y")
           if line.startswith("END_TIME"):
-            dt = datetime.strptime(line[9:-1],"%a %b %d %H:%M:%S %Z %Y")
+            dt = dateutil.parser.parse(line[9:-1])
             return dt.strftime("%Y-%m-%d %H:%M")
           if line.startswith("DATE"):
-            dt = datetime.strptime(line[5:-1],"%a %b %d %H:%M:%S %Z %Y")
+            dt = dateutil.parser.parse(line[5:-1])
             return dt.strftime("%Y-%m-%d %H:%M")
   return "N/A"
 
