@@ -45,6 +45,9 @@ fsfiles = {
 ## Find the subject
 def fs_subject(fspath):
   head, tail = os.path.split(fspath)
+  # Some folders will be called ID.0, ID.1, etc for multiple runs, truncate any periods.
+  if tail[-2] == ".":
+    tail = tail[0:-2]
   return tail
 
 ## Find the version
