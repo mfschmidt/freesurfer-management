@@ -11,10 +11,20 @@ LOC_INBOX=/mri/queue
 # First, count how many waiting images are already on the supercomputer.
 # Using "cluster" depends on an entry in /home/$USER/.ssh/config defining it.
 REMOTES=$(ssh cluster "2>/dev/null ls -1 $REM_INBOX/*.tgz")
-REM_ACTUAL=$(echo "${REMOTES}" | wc -l)
+if [ "$REMOTES" == "" ] ; then
+	REM_ACTUAL=0
+else
+	REM_ACTUAL=$(echo $REMOTES | wc -l)
+fi
 # Next, count how many waiting images are yet to be uploaded.
 LOCALS=$(2>/dev/null ls -1 $LOC_INBOX/*.tgz)
-LOC_ACTUAL=$(echo "${LOCALS}" | wc -l)
+if [ "$LOCALS" == "" ] ; then
+	LOC_ACTUAL=0
+else
+	LOC_ACTUAL=$(echo $LOCALS | wc -l)
+fi
+
+echo "============-- $(date) --============"
 echo "Found ${REM_ACTUAL} on the cluster and ${LOC_ACTUAL} locally."
 
 if [[ "$LOC_ACTUAL" -gt "0" ]] && [[ "$REM_ACTUAL" -lt "$REM_LIMIT" ]]

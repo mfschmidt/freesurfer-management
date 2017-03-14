@@ -11,8 +11,9 @@ LOC_INBOX=/mri/test.fs600
 # Using "cluster" depends on an entry in /home/$USER/.ssh/config defining it.
 REM_LIST=$(ssh cluster "2>/dev/null cd $REM_OUTBOX; ls -1 *.pickup")
 REM_ACTUAL=$(echo "${REM_LIST}" | wc -l)
+echo "============-- $(date) --============"
 echo "Found ${REM_ACTUAL} pickups on the cluster."
-echo $REM_LIST
+#echo $REM_LIST
 
 # Loop through completed packages on the server
 COUNTER=0
