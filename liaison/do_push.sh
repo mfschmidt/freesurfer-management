@@ -45,8 +45,11 @@ then
 		fi
 		cd ${LOC_INBOX}
 		echo "upload #${COUNTER}. $g"
+
+		# The whole purpose of this script!! Upload the package and the pbs script.
 		scp ${f} cluster:${REM_INBOX}/
 		scp ${SID}-freesurfer.pbs cluster:${REM_INBOX}/
+
 		ssh cluster "mkdir ${REM_INBOX}/${SID}; cd ${REM_INBOX}/${SID}; tar -xzf ../${g}; rm ../${g}"
 		#Everything in the queue is a copy, not an original!! Move them to ./QUEUED for manual deletion.
 		if [ ! -e ./QUEUED ]; then

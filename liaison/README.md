@@ -27,7 +27,29 @@ Compute clusters typically are set up with a queuing system to manage the jobs a
 
 ### do_push.sh
 
-Push all necessary files up to the cluster from the liaison machine through an ssh tunnel and the scp command. As written, the script finds all *.tgz files in the specified folder and secure copies them to the specified folder on the remote machine. You will need to edit the script to make sure it specifies your folders correctly.
+Push all necessary files up to the cluster from the liaison machine through an ssh tunnel via the scp command. As written, the script finds all *.tgz files in the specified folder and secure copies them (along with a pbs script for each) to the specified folder on the remote machine. You will need to edit the script to make sure it specifies your folders correctly. And before any of this can happen, you need to package your files to upload. Because there are so many image formats possible, this is not scripted, but should be done manually. Two options that work for us follow:
+
+For an Analyze image:
+
+    $ cd /var/originals/X000000
+    $ tar -czvf /var/queue/X000000.tgz X000000*spgr.{hdr,img}
+    $ create_pbs_script.sh X000000*spgr.img
+    $ cp *.pbs /var/queue/
+    
+For a set of DICOM images:
+
+    $ cd /var/originals/X000000
+    $ tar -czvf /var/queue/X000000.tgz X000000*001+*0*.dcm
+    $ create_pbs_script.sh X000000*001+*001.dcm
+    $ cp *.pbs /var/queue/
+    
+or, if you have more than a few images, something like this to get them all:
+
+    $ cd /var/originals
+    $ for sid in $(ls -1d X*); do cd $sid; tar -czvf /var/queue/$sid.tgz $sid*spgr.{hdr,img}; create_pbs_script.sh $sid*spgr.img; cp *.pbs /var/queue; cd -; done
+
+
+    
 
 ### do_pull.sh
 

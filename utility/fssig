@@ -20,100 +20,100 @@ D = os.path.realpath(args.dir)
 
 # Ensure we are in a consistent and workable context
 if not os.path.isdir(D):
-  errs.update(nodir="'{0}' is not a directory.".format(D))
-
+    errs.update(nodir="'{0}' is not a directory.".format(D))
 
 if len(errs) > 0:
-  for k in errs.keys():
-    print("fs_signature error '{0}': {1}".format(k, errs[k]))
-  sys.exit(1)
-
+    for k in errs.keys():
+        print("fs_signature error '{0}': {1}".format(k, errs[k]))
+    sys.exit(1)
 
 # Find important files in freesurfer structure.
 fsfiles = {
-  'build' : [
-    'scripts/build-stamp.txt',
-    'scripts/build-stamp.txt.original',
-    'scripts/build-stamp.txt.subfields'],
-  'done' : [
-    'scripts/recon-all.done',
-    'scripts/recon-all.done.original',
-    'scripts/recon-all.done.subfields'],
-  'aseg' : [
-    'stats/aseg.stats'] }
+    'build': [
+        'scripts/build-stamp.txt',
+        'scripts/build-stamp.txt.original',
+        'scripts/build-stamp.txt.subfields'],
+    'done': [
+        'scripts/recon-all.done',
+        'scripts/recon-all.done.original',
+        'scripts/recon-all.done.subfields'],
+    'aseg': [
+        'stats/aseg.stats']}
+
 
 ## Find the subject
 def fs_subject(fspath):
-  head, tail = os.path.split(fspath)
-  # Some folders will be called ID.0, ID.1, etc for multiple runs, truncate any periods.
-  if tail[-2] == ".":
-    tail = tail[0:-2]
-  return tail
+    head, tail = os.path.split(fspath)
+    # Some folders will be called ID.0, ID.1, etc for multiple runs, truncate any periods.
+    if tail[-2] == ".":
+        tail = tail[0:-2]
+    return tail
+
 
 ## Find the version
 def fs_version(buildfiles):
-  for f in buildfiles:
-    if os.path.isfile(os.path.join(D,f)):
-      with open(os.path.join(D,f), 'r') as bf:
-        for line in bf:
-          if line.startswith("freesurfer"):
-            #print("  '{0}' - {1}".format('.*-v([0-9]\.[0-9]\.[0-9]).*', re.match(r'.*-v([0-9]\.[0-9]\.[0-9]).*', line).group(1)))
-            #print("  '{0}' - {1}".format('.*v(.*?$)', re.match(r'.*v(.*?$)', line).group(1)))
-            return re.match(r'.*v(.*?$)', line).group(1)
-    #else:
-      #print("{0} is not a file.".format(f))
-  return "N/A"
-      
+    for f in buildfiles:
+        if os.path.isfile(os.path.join(D, f)):
+            with open(os.path.join(D, f), 'r') as bf:
+                for line in bf:
+                    if line.startswith("freesurfer"):
+                        # print("  '{0}' - {1}".format('.*-v([0-9]\.[0-9]\.[0-9]).*', re.match(r'.*-v([0-9]\.[0-9]\.[0-9]).*', line).group(1)))
+                        # print("  '{0}' - {1}".format('.*v(.*?$)', re.match(r'.*v(.*?$)', line).group(1)))
+                        return re.match(r'.*v(.*?$)', line).group(1)
+                        # else:
+                        # print("{0} is not a file.".format(f))
+    return "N/A"
+
+
 ## Find the hippocampal volumes
 def fs_hvs(asegfiles):
-  buf=""
-  lv=""
-  rv=""
-  for f in asegfiles:
-    if os.path.isfile(os.path.join(D,f)):
-      with open(os.path.join(D,f), 'r') as af:
-        for line in af:
-          if not line.startswith("#"):
-            buf = re.match(r'.+?(?P<volume>\d+\.*\d*)(?P<spaces>\s+)Left-Hippocampus.+', line)
-            if buf:
-              lv=buf.group('volume')
-            buf = re.match(r'.+?(?P<volume>\d+\.*\d*)(?P<spaces>\s+)Right-Hippocampus.*', line)
-            if buf:
-              rv=buf.group('volume')
-  if len(lv)>0 and len(rv)>0:
-    return "L={0},R={1}".format(lv,rv)
-  else:
-    if len(lv)>0:
-      return "L={0},R=N/A".format(lv)
-    if len(rv)>0:
-      return "L=N/A,R={0}".format(rv)
-  return "N/A"
+    buf = ""
+    lv = ""
+    rv = ""
+    for f in asegfiles:
+        if os.path.isfile(os.path.join(D, f)):
+            with open(os.path.join(D, f), 'r') as af:
+                for line in af:
+                    if not line.startswith("#"):
+                        buf = re.match(r'.+?(?P<volume>\d+\.*\d*)(?P<spaces>\s+)Left-Hippocampus.+', line)
+                        if buf:
+                            lv = buf.group('volume')
+                        buf = re.match(r'.+?(?P<volume>\d+\.*\d*)(?P<spaces>\s+)Right-Hippocampus.*', line)
+                        if buf:
+                            rv = buf.group('volume')
+    if len(lv) > 0 and len(rv) > 0:
+        return "L={0},R={1}".format(lv, rv)
+    else:
+        if len(lv) > 0:
+            return "L={0},R=N/A".format(lv)
+        if len(rv) > 0:
+            return "L=N/A,R={0}".format(rv)
+    return "N/A"
+
 
 ## Find the start time
 def fs_donetime(donefiles):
-  buf=""
-  t=""
-  for f in donefiles:
-    if os.path.isfile(os.path.join(D,f)):
-      with open(os.path.join(D,f), 'r') as af:
-        for line in af:
-          # dt = datetime.strptime(line[5:-1],"%a %b %d %H:%M:%S %Z %Y")
-          if line.startswith("END_TIME"):
-            dt = dateutil.parser.parse(line[9:-1])
-            return dt.strftime("%Y-%m-%d %H:%M")
-          if line.startswith("DATE"):
-            dt = dateutil.parser.parse(line[5:-1])
-            return dt.strftime("%Y-%m-%d %H:%M")
-  return "N/A"
-
-
+    buf = ""
+    t = ""
+    for f in donefiles:
+        if os.path.isfile(os.path.join(D, f)):
+            with open(os.path.join(D, f), 'r') as af:
+                for line in af:
+                    # dt = datetime.strptime(line[5:-1],"%a %b %d %H:%M:%S %Z %Y")
+                    if line.startswith("END_TIME"):
+                        dt = dateutil.parser.parse(line[9:-1])
+                        return dt.strftime("%Y-%m-%d %H:%M")
+                    if line.startswith("DATE"):
+                        dt = dateutil.parser.parse(line[5:-1])
+                        return dt.strftime("%Y-%m-%d %H:%M")
+    return "N/A"
 
 
 ##-----------------------------------------------------------------------------
 ## Run
 print("{{\"id\":\"{subject}\",\"v\":\"{version}\",\"done\":\"{done}\",\"hv\":\"{hvs}\"}}".format(
-  subject = fs_subject(D),
-  version = fs_version(fsfiles['build']),
-  done = fs_donetime(fsfiles['done']),
-  hvs = fs_hvs(fsfiles['aseg'])
-  ) )
+    subject=fs_subject(D),
+    version=fs_version(fsfiles['build']),
+    done=fs_donetime(fsfiles['done']),
+    hvs=fs_hvs(fsfiles['aseg'])
+))
