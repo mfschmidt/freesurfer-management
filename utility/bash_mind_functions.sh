@@ -36,7 +36,7 @@ has_freesurfer_data(  ) {
 }
 
 ##------------------------------------------------------------------------------
-## Determine whether the path given contains freesurfer segmentation data
+## Determine whether the path given contains Analyze style image and header data
 has_analyze_data(  ) {
 	hits=0
 	exp_exts="hdr img"
