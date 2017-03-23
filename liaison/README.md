@@ -27,7 +27,11 @@ Compute clusters typically are set up with a queuing system to manage the jobs a
 
 ### do_push.sh
 
-Push all necessary files up to the cluster from the liaison machine through an ssh tunnel via the scp command. As written, the script finds all *.tgz files in the specified folder and secure copies them (along with a pbs script for each) to the specified folder on the remote machine. You will need to edit the script to make sure it specifies your folders correctly. And before any of this can happen, you need to package your files to upload. Because there are so many image formats possible, this is not scripted, but should be done manually. Two options that work for us follow:
+Push all necessary files up to the cluster from the liaison machine through an ssh tunnel via the scp command. As written, the script finds all *.tgz files in the specified folder and secure copies them (along with a pbs script for each) to the specified folder on the remote machine. Paths and quantities are set at the top of the do_push.sh script, so once set, you can just run the script from the liaison computer's command line.
+
+    $ do_push.sh
+
+Before any of this can happen, you need to package your files to upload. Because there are so many image formats possible, this is not scripted, but should be done manually. Two options that work for us follow:
 
 For an Analyze image:
 
@@ -53,6 +57,9 @@ or, if you have more than a few images, something like this to get them all:
 
 ### do_pull.sh
 
-Pulls all completed files from the cluster down to the liaison machine. This script queries the cluster with the ls command over ssh to determine what to download, then it secure copies results down to its own disks and removes the copy on the cluster.
+Pulls all completed files from the cluster down to the liaison machine. This script queries the cluster with the ls command over ssh to determine what to download, then it secure copies results down to its own disks and removes the copy on the cluster. Once paths are set at the top of do_pull.sh, just run the command from your the linux command line on the liaison computer.
+
+    $ do_pull.sh
+
 
 
