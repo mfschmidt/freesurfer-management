@@ -5,7 +5,7 @@
 # The path where jobs are queued up on the supercomputer
 INITIAL_PWD=$(pwd)
 REM_OUTBOX=/ptmp/r1774/outbox
-LOC_INBOX=/mri/test.fs600
+LOC_INBOX=/mri/gmbi.rochester.fs600
 
 # First, count how many waiting images are finished on the supercomputer.
 # Using "cluster" depends on an entry in /home/$USER/.ssh/config defining it.
