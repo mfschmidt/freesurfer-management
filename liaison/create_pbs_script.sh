@@ -27,6 +27,14 @@ echo -e "#PBS -o ${FSO}/${SID}.stdout.log\n" >> $SCRIPT
 echo -e "export FREESURFER_HOME=${FSH}" >> $SCRIPT
 echo -e "export SUBJECTS_DIR=${FSS}" >> $SCRIPT
 echo -e "source ${FSH}/SetUpFreeSurfer.sh\n" >> $SCRIPT
+
+# Unzip and extract the packaged images (This used to be done in the do_push.sh)
+echo -e "mkdir ${FSQ}/${SID}" >> $SCRIPT
+echo -e "cd ${FSQ}/${SID}" >> $SCRIPT
+echo -e "tar -xzf ../${SID}.tgz" >> $SCRIPT
+echo -e "rm ../${SID}.tgz" >> $SCRIPT
+echo -e "cd -\n" >> $SCRIPT
+
 # The IMG parameter expansion just strips the file portion from the path to the image.
 echo -e "recon-all -i ${FSQ}/${SID}/${IMG##*/} -subjid ${SID}" >> $SCRIPT
 echo -e "recon-all -subjid ${SID} -all -hippocampal-subfields-T1 -brainstem-structures\n" >> $SCRIPT
