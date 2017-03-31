@@ -10,7 +10,7 @@
 # Accept one input argument, which is both the subject's ID number and
 # the name of the subdirectory where it is stored.
 SID=$1
-COLLECTION_DIR=/mri/gmbi.rochester.original
+COLLECTION_DIR=/mri/gmbi.jackson.original
 QUEUE_DIR=/mri/queue
 PWD=$(pwd)
 
