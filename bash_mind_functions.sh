@@ -54,7 +54,7 @@ function has_analyze_data(  ) {
 	hits=0
 	exp_exts="hdr img"
 	for s in $exp_exts; do
-		imgs=$(2>/dev/null ls -1f ${1}/${1##*/}*.${exp_exts} | wc -l)
+		imgs=$(2>/dev/null ls -1f ${1}/${1##*/}*spgr*.${exp_exts} | wc -l)
 		let hits+=$imgs
 	done
 	
