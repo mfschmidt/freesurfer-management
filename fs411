@@ -122,7 +122,8 @@ def get_fsversion(verbosity, sparsity=False):
         version_string = line
     f.close()
     if verbosity == "short":
-        return (version_string[-6:])
+        short_version_string=version_string[version_string.find("pub-v") + len("pub-v"):]
+        return (short_version_string[:5])
     # else verbosity must be long
     return (version_string)
 
