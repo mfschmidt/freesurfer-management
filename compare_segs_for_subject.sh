@@ -1,7 +1,32 @@
 #!/bin/bash
 
-SID=$1
-OUTDIR=/mri/gmbi.rochester.comparisons/$1
+# compare_segs_for_subject.sh
+#
+# This script will generate masks for the subject specified and compare
+# those masks to all other tracings or segmentations of this subject.
+
+# First, figure out whether we're asked to deal with a particular tracing
+# or a folder full of them.
+INTYPE=""
+if [ -f "$1" ]; then
+	INTYPE="FILE"
+	BASE="${1##*/}"
+	SID="${BASE%%.*}"
+elif [ -d "$1" ]; then
+	INTYPE="DIR"
+	SID="${1##*/}"
+else
+	echo "$1 is neither a file nor a directory. Nothing I can do."
+	exit 1
+fi
+
+OUTDIR=/mri/gmbi.rochester.comparisons/$SID
+
+echo "In     : $1"
+echo "SID    : $SID"
+echo "Out to : $OUTDIR"
+exit 0
+
 if [ ! -d $OUTDIR ]; then
 	echo "making new directory, $OUTDIR"
 	mkdir $OUTDIR
