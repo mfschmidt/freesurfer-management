@@ -1,6 +1,10 @@
 #!/bin/bash
 
 # gen_masks_from_xmls.sh trace_directory output_directory
+#
+# X000000.TrueLeft.YYY.xml + X000000.TrueRight.YYY.xml => X000000.mipav.both.ubyte.nii
+# X000000/mri/aseg.mgz => tmp.aseg.nii.gz => X000000.aseg.{hdr,img}
+
 
 MIPAV=/usr/local/mipav730/mipav
 MIPAVSCRIPT=/home/mike/bin/mrcode/open_image_and_save_hf_mask.sct

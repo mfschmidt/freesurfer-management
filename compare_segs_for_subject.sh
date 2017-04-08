@@ -12,6 +12,12 @@ if [ -f "$1" ]; then
 	INTYPE="FILE"
 	BASE="${1##*/}"
 	SID="${BASE%%.*}"
+	if [ *"TrueLeft"* == "$BASE" ]; then
+		TL="${1}"
+		TR="${1/Left/Right/}"
+		TI="${1/TrueLeft/COR/}"
+		TI="${TC/xml/img/}"
+		TH="${TI/img/hdr/}"
 elif [ -d "$1" ]; then
 	INTYPE="DIR"
 	SID="${1##*/}"
