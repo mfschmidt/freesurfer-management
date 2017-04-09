@@ -16,10 +16,10 @@ if [ ! -e "$INPUTDIR" ]; then
 	exit 1
 fi
 
-if [ "$2" == "" ]; then
+if [ "$3" == "" ]; then
 	OUTPUTDIR="$INPUTDIR"
 else
-	OUTPUTDIR="$2"
+	OUTPUTDIR="$3"
 fi
 if [ ! -e "$OUTPUTDIR" ]; then
 	# Make an attempt to create the output directory, and give up if we can't.
@@ -33,7 +33,7 @@ fi
 
 # First, find the traces.
 cd "$INPUTDIR"
-for f in *.COR.*.hdr; do
+for f in *.COR.$2.hdr; do
 	if [[ "$f" =~ ^(.*).COR.(.*).hdr$ ]]; then
 		# A coronal header file indicates there is a tracing here.
 		# Check for other components of a full tracing.

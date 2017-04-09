@@ -4,7 +4,28 @@
 #
 # This script will outsource mask generation for the subject specified and compare
 # those masks to all other tracings or segmentations of this subject.
-VERBOSE=1
+
+# Parse command-line options
+VERBOSE=0
+FORCE=0
+while getopts ":a" opt; do
+	case $opt in
+		f)
+			# Force new masks, overwriting existing masks
+			FORCE=1
+			;;
+		v)
+			# echo anything relevant
+			VERBOSE=1
+			;;
+		\?)
+			echo "Invalid option: -$OPTARG" >&2
+			echo "quitting to make sure you've asked for what you want first."
+			exit 1
+			;;
+	esac
+done
+shift $((OPTIND-1))
 
 # First, figure out whether we're asked to deal with a particular tracing
 # or a folder full of them.
@@ -70,22 +91,31 @@ T_LOCI="/mri/gmbi.rochester.trace/ \
 O_LOCI="/mri/gmbi.rochester.original/ \
         /mri/gmbi.jackson.original/"
 
-# We want to compare the specified freesurfer tracing(s) with all others.
+# We want to compare the specified tracing(s) with all others.
 # 1. What complete manual tracings do we have?
-T_CANDIDATES=$(2>/dev/null find $T_LOCI -type d -name $SID)
-for C in $T_CANDIDATES; do
-	if [ "$(dir_contents.sh $C)" == "mipav" ]; then
-		echo "Got manual tracings at $C"
-		#gen_masks_from_xmls.sh $C $OUTDIR
-	fi
-done
+# Generate masks for the specified file.
+if [ "$INDIR" != "" ] && [ "$INITIALS" != "" ]; then
+	if [ $VERBOSE ]; then echo "A specific $INITIALS tracing from $INDIR was specified; making masks for it."; fi
+	if [ $FORCE ]; then rm -f "$OUTDIR/$SID.$INITIALS*.mipavmask.nii"; fi
+	gen_masks_from_xmls.sh "$INDIR" "$INITIALS" "$OUTDIR"
+else
+	T_CANDIDATES=$(2>/dev/null find $T_LOCI -type d -name $SID)
+	for C in $T_CANDIDATES; do
+		if [ "$(dir_contents.sh $C)" == "mipav" ]; then
+			echo "Got manual tracings at $C"
+			if [ $FORCE ]; then rm -f "$OUTDIR/$SID.*.mipavmask.nii"; fi
+			gen_masks_from_xmls.sh $C * $OUTDIR
+		fi
+	done
+fi
+
 
 # 2. What freesurfer segmentations do we have?
 F_CANDIDATES=$(2>/dev/null find $F_LOCI -type d -name $SID)
 for C in $F_CANDIDATES; do
 	if [ "$(dir_contents.sh $C)" == "freesurfer" ]; then
 		echo "Got FreeSurfer segmentation at $C"
-		#gen_masks_from_freesurfer.sh $C $OUTDIR
+		gen_masks_from_freesurfer.sh $C $OUTDIR
 	fi
 done
 
