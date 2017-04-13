@@ -87,7 +87,7 @@ for f in *.True*.$2.xml; do
 						    -base "${OUTPUTDIR}/tmp.${SID}.COR.hdr" \
 						    -interp linear -nmatch 100% -conv 0.005 \
 						    -cost ls -twopass -automask -warp shr \
-						    -1Dmatrix_save "${OUTPUTDIR}/${SID}.inv.aff12.1D
+						    -1Dmatrix_save "${OUTPUTDIR}/${SID}.inv.aff12.1D"
 
 				# ---------- The real work ends here. ----------
 			fi
