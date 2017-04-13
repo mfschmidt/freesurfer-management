@@ -3,8 +3,6 @@
 # gen_masks_from_freesurfer.sh freesurfer_directory output_directory
 
 ASEG="aseg"
-MIPAV=/usr/local/mipav730/mipav
-MIPAVSCRIPT=/home/mike/bin/mrcode/open_image_and_save_hf_mask.sct
 
 # Check on input and output directories
 INPUTDIR="$1"
@@ -42,6 +40,16 @@ fi
 if [ -f "${OUTPUTDIR}/${SID}.${ASEG}.${FSV}.hdr" ]; then
 	echo "${OUTPUTDIR}/${SID}.${ASEG}.${FSV}.hdr already exists."
 	exit 1
+fi
+if [ ! -f $(which mri_convert) ]; then
+    echo "FreeSurfer must be installed to convert mgz segmentation to nii.gz mask."
+    echo "I cannot find FreeSurfer's mri_convert executable, so cannot continue."
+    exit 1
+fi
+if [ ! -f $(which nifti_tool) ]; then
+    echo "AFNI must be installed to convert nii.gz segmentation to Analyze header."
+    echo "I cannot find AFNI's nifti_tool executable, so cannot continue."
+    exit 1
 fi
 
 mri_convert \
