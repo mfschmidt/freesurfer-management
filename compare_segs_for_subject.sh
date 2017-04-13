@@ -70,6 +70,7 @@ if [ ! -d $OUTDIR ]; then
 	fi
 fi
 
+# Report our interpretation of inputs for debugging, if necessary
 if [ $VERBOSE ]; then
 	echo "In      : $1"
 	echo "SID     : $SID"
@@ -79,7 +80,7 @@ if [ $VERBOSE ]; then
 	#exit 0
 fi
 
-
+# Set up default locations to find MRI data for comparisons
 F_LOCI="/mri/gmbi.rochester.fs600/ \
         /mri/gmbi.rochester.fs530/ \
         /mri/gmbi.rochester.fs520/ \
@@ -91,8 +92,8 @@ T_LOCI="/mri/gmbi.rochester.trace/ \
 O_LOCI="/mri/gmbi.rochester.original/ \
         /mri/gmbi.jackson.original/"
 
-# We want to compare the specified tracing(s) with all others.
-# 1. What complete manual tracings do we have?
+# Third, compare the specified tracing(s) with all others.
+# 3-1. What complete manual tracings do we have?
 # Generate masks for the specified file.
 if [ "$INDIR" != "" ] && [ "$INITIALS" != "" ]; then
 	if [ $VERBOSE ]; then echo "A specific $INITIALS tracing from $INDIR was specified; making masks for it."; fi
@@ -104,6 +105,7 @@ else
 		if [ "$(dir_contents.sh $C)" == "mipav" ]; then
 			echo "Got manual tracings at $C"
 			if [ $FORCE ]; then rm -f "$OUTDIR/$SID.*.mipavmask.nii"; fi
+			if [ $VERBOSE ]; then echo "Making mask(s) from $C"; fi
 			gen_masks_from_xmls.sh $C * $OUTDIR
 		fi
 	done
