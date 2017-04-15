@@ -2,8 +2,6 @@
 
 # gen_masks_from_freesurfer.sh freesurfer_directory output_directory
 
-ASEG="aseg"
-
 # Check on input and output directories
 INPUTDIR="$1"
 if [ ! -e "$INPUTDIR" ]; then
@@ -27,38 +25,41 @@ fi
 
 SID="${INPUTDIR##*/}"
 FSV="$(fs411 -vs "$INPUTDIR")"
+FSV="${FSV//./}"
 
 # Make sure expected files are in place
-if [ ! -f "${INPUTDIR}/mri/${ASEG}.mgz" ]; then
+if [ ! -f "${INPUTDIR}/mri/aseg.mgz" ]; then
 	echo "No aseg.mgz in ${INPUTDIR}/mri/"
 	exit 1
 fi
-if [ -f "${OUTPUTDIR}/${SID}.${ASEG}.${FSV}.nii.gz" ]; then
-	echo "${OUTPUTDIR}/${SID}.${ASEG}.${FSV}.nii.gz already exists."
+if [ -f "${OUTPUTDIR}/${SID}.aseg.${FSV}.nii.gz" ]; then
+	echo "${OUTPUTDIR}/${SID}.aseg.${FSV}.nii.gz already exists."
 	exit 1
 fi
-if [ -f "${OUTPUTDIR}/${SID}.${ASEG}.${FSV}.hdr" ]; then
-	echo "${OUTPUTDIR}/${SID}.${ASEG}.${FSV}.hdr already exists."
+if [ -f "${OUTPUTDIR}/${SID}.aseg.${FSV}.hdr" ]; then
+	echo "${OUTPUTDIR}/${SID}.aseg.${FSV}.hdr already exists."
 	exit 1
 fi
 if [ ! -f $(which mri_convert) ]; then
-    echo "FreeSurfer must be installed to convert mgz segmentation to nii.gz mask."
+    echo "FreeSurfer must be installed to convert mgz segmentation to img mask."
     echo "I cannot find FreeSurfer's mri_convert executable, so cannot continue."
     exit 1
 fi
-if [ ! -f $(which nifti_tool) ]; then
-    echo "AFNI must be installed to convert nii.gz segmentation to Analyze header."
-    echo "I cannot find AFNI's nifti_tool executable, so cannot continue."
-    exit 1
-fi
+#if [ ! -f $(which nifti_tool) ]; then
+#    echo "AFNI must be installed to convert nii.gz segmentation to Analyze header."
+#    echo "I cannot find AFNI's nifti_tool executable, so cannot continue."
+#    exit 1
+#fi
 
 mri_convert \
-	--in_type mgz --out_type nii --out_orientation LPI \
-	"${INPUTDIR}/mri/${ASEG}.mgz" \
-	"${OUTPUTDIR}/${SID}.${ASEG}.${FSV}.nii.gz"
+	--in_type mgz \
+	--out_type nifti1 --out_orientation LPI -odt uchar \
+	"${INPUTDIR}/mri/aseg.mgz" \
+	"${OUTPUTDIR}/${SID}.aseg.${FSV}.img"
 
-nifti_tool -copy_im \
-	-prefix "${OUTPUTDIR}/${SID}.${ASEG}.${FSV}.hdr" \
-	-infiles "${OUTPUTDIR}/${SID}.${ASEG}.${FSV}.nii.gz"
+# no longer necessary, covered by mri_convert in one step
+#nifti_tool -copy_im \
+#	-prefix "${OUTPUTDIR}/${SID}.aseg.${FSV}.hdr" \
+#	-infiles "${OUTPUTDIR}/${SID}.aseg.${FSV}.nii.gz"
 
-rm -rf "${OUTPUTDIR}/${SID}.${ASEG}.${FSV}.nii.gz"
+#rm -rf "${OUTPUTDIR}/${SID}.aseg.${FSV}.nii.gz"
