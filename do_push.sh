@@ -68,7 +68,7 @@ then
 		fi
 		mv ${SID}.tgz ./QUEUED/${h}
 		mv ${SID}-freesurfer.pbs ./QUEUED/${SID}.${APPENDER}-freesurfer.pbs
-		cd -
+		1>/dev/null cd -
 		COUNTER=$(($COUNTER+1))
 	done
 fi
