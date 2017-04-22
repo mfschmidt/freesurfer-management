@@ -335,7 +335,7 @@ def write_fsfile(outfilename, fstype):
 def write_mrsfile(wholedict, csvmrsfile):
     rowNames = []
     rowData = []
-    for n, d in get_mrsmeta_dict(subjectid, get_fstime("short", "end")).items():
+    for n, d in get_mrsmeta_dict(subjectid, get_scandate(), get_fstime("short", "end")).items():
         rowNames.append(n)
         rowData.append(d)
     for n, d in get_mrs_dict().items():
@@ -347,7 +347,23 @@ def write_mrsfile(wholedict, csvmrsfile):
             # Successful lookup of mrs number from FreeSurfer description
             rowData.append(wholedict.get(d, "FAIL"))
         else:
-            if d == "ThalamusProper_T":
+            if d == "Scandate_Month":
+                rowData.append(get_scandate()[5:7])
+            elif d == "Scandate_Day":
+                rowData.append(get_scandate()[8:10])
+            elif d == "Scandate_Year":
+                rowData.append(get_scandate()[0:4])
+            elif d == "Scandate_Time":
+                rowData.append(get_scandate()[11:])
+            elif d == "Analysisdate_Month":
+                rowData.append(get_fstime("short", "end")[5:7])
+            elif d == "Analysisdate_Day":
+                rowData.append(get_fstime("short", "end")[8:10])
+            elif d == "Analysisdate_Year":
+                rowData.append(get_fstime("short", "end")[0:4])
+            elif d == "Analysisdate_Time":
+                rowData.append(get_fstime("short", "end")[11:])
+            elif d == "ThalamusProper_T":
                 # This exception is necessary to match the tweaked mrs variable names
                 lval = float(wholedict.get('Left-Thalamus-Proper', "0.0"))  # Match at Left-***
                 rval = float(wholedict.get('Right-Thalamus-Proper', "0.0"))  # Match at Right-***
@@ -387,6 +403,8 @@ def write_mrsfile(wholedict, csvmrsfile):
                 else:
                     rval = float(wholedict.get(d[:-2] + '_R', "0.0"))  # Match at ***_R
                 rowData.append("{:0.2f}".format(lval + rval))
+            elif n[-3:] == "MRS":
+                rowData.append("NA")
             else:
                 rowData.append("0.00")
     print("Writing standard mrs data for {sid} to {fp}".format(sid=subjectid, fp=csvmrsfile))
