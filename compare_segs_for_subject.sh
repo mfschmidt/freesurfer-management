@@ -129,15 +129,15 @@ fi
 if [ $VERBOSE ]; then echo ">>>=== $SID --- comparisons"; fi
 for T1 in $(ls -1 ${OUTDIR}/${SID}.mask*.img); do
 	if [ $VERBOSE ]; then echo ">>>===    $SID --- candidate $T1"; fi
-	if [[ "$T1" =~ ^(.*)\.mask.(.*)_(.*).img$ ]]; then
+	if [[ "$T1" =~ ^(.*)\.mask\.(.*)_(.*)\.img$ ]]; then
 		tr1=${BASH_REMATCH[2]}
 		v1=${BASH_REMATCH[3]}
 		for T2 in $(ls -1 ${OUTDIR}/${SID}.mask.*_${v1}.img); do
 			if [ $VERBOSE ]; then echo ">>>===    $SID --- candidate $T1 vs $T2"; fi
 			if [ "$T1" != "$T2" ]; then
-				if [[ "$T2" =~ ^(.*)\.mask.(.*)_(.*).img$ ]]; then
+				if [[ "$T2" =~ ^(.*)\.mask\.(.*)_(.*)\.img$ ]]; then
 					tr2=${BASH_REMATCH[2]}
-					summarize_overlap.m "$T1" "$T2" "${SID}.comp.${tr1}-${v1}.${tr2}-${v1}"
+					1>/dev/null summarize_overlap.m "$T1" "$T2" "${SID}.comp.${tr1}-${v1}.${tr2}-${v1}"
 				else
 					echo "No regex match for $T2"
 				fi
@@ -148,18 +148,59 @@ for T1 in $(ls -1 ${OUTDIR}/${SID}.mask*.img); do
 	fi
 	for F2 in $(ls -1 ${OUTDIR}/${SID}.aseg.${v1}.img); do
 		if [ $VERBOSE ]; then echo ">>>===    $SID --- candidate $T1 vs $F2"; fi
-		if [[ "$F2" =~ ^(.*)\.aseg.(.*).img$ ]]; then
+		if [[ "$F2" =~ ^(.*)\.aseg\.(.*)\.img$ ]]; then
 			v2=${BASH_REMATCH[2]}
-			summarize_overlap.m "$T1" "$F2" "${SID}.comp.${tr1}.${v2}"
+			1>/dev/null summarize_overlap.m "$T1" "$F2" "${SID}.comp.${tr1}.${v2}"
 		else
 			echo "No regex match for $F2"
 		fi
 	done
 done
+for F1 in $(ls -1 ${OUTDIR}/${SID}.aseg.*.img); do
+	for F2 in $(ls -1 ${OUTDIR}/${SID}.aseg.*.img); do
+		if [ $VERBOSE ]; then echo ">>>===    $SID --- candidate $F1 vs $F2"; fi
+		if [[ "$F1" =~ ^(.*)\.aseg\.(.*)\.img$ ]]; then
+			v1=${BASH_REMATCH[2]}
+		fi
+		if [[ "$F2" =~ ^(.*)\.aseg\.(.*)\.img$ ]]; then
+			v2=${BASH_REMATCH[2]}
+		fi
+		if [ "$F1" != "$F2" ]; then
+			1>/dev/null summarize_overlap.m "$F1" "$F2" "${SID}.comp.${v1}.${v2}"
+		fi
+	done
+done
 
-# 6. Consolidate the csv files into one
-cat ${OUTDIR}/${SID}.comp.*.histo.csv >> "${OUTDIR}/${SID}.comparisons.csv"
+# 6. Consolidate the csv files into one and de-dupe them
+cat ${OUTDIR}/${SID}.comp.*.histo.csv >> "${OUTDIR}/tmp.${SID}.comparisons.csv"
 rm ${OUTDIR}/${SID}.comp.*.histo.csv
+if [ ! -f "${OUTDIR}/${SID}.comparisons.csv" ]; then
+    touch "${OUTDIR}/${SID}.comparisons.csv"
+fi
+while read comp; do
+	IFS=',' read -r -a valarray <<< "$comp"
+	IFS='.' read -r -a hdrarray <<< "${valarray[0]}"
+	declare -a A=(${hdrarray[0]} ${hdrarray[2]} ${hdrarray[3]} \
+	              ${valarray[1]} ${valarray[2]} ${valarray[3]} \
+	              ${valarray[4]} ${valarray[5]} ${valarray[6]})
+	echo "${A[0]}: (${A[1]%%-*} vs ${A[2]%%-*}) L[${A[3]},${A[4]},${A[5]}] & R[${A[6]},${A[7]},${A[8]}]"
+	MATCH="false"
+	while read newf; do
+	    if [ "$newf" == "${A[0]},${A[1]%%-*},${A[2]%%-*},${A[3]},${A[4]},${A[5]},${A[6]},${A[7]},${A[8]}" ]; then
+	        MATCH="true"
+	        #echo "    forward matches $newf"
+	    fi
+	    if [ "$newf" == "${A[0]},${A[2]%%-*},${A[1]%%-*},${A[4]},${A[3]},${A[5]},${A[7]},${A[6]},${A[8]}" ]; then
+	        MATCH="true"
+	        #echo "    reverse matches $newf"
+	    fi
+	done <"${OUTDIR}/${SID}.comparisons.csv"
+	if [ "$MATCH" == "false" ]; then
+	    # Only output the record to the actual file if it is not a duplicate.
+	    echo "${A[0]},${A[1]%%-*},${A[2]%%-*},${A[3]},${A[4]},${A[5]},${A[6]},${A[7]},${A[8]}" >> "$OUTFILE"
+	fi
+done <"${OUTDIR}/tmp.${SID}.comparisons.csv"
+rm "${OUTDIR}/tmp.${SID}.comparisons.csv"
 
 cd -
 echo "Done"
