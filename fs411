@@ -115,7 +115,7 @@ def input_ok(mypath):
 
 
 ##-- Extract the version information
-def get_fsversion(verbosity="short", sparsity=False):
+def get_fsversion(verbosity="short"):
     stampfile = subjectroot + neededfiles['stamp']
     version_string = ""
     if not os.path.isfile(stampfile):
@@ -188,7 +188,7 @@ def get_fstime(verbosity="short", timetype="elapsed", sparsity=False):
 
 
 ##-- Extract the hostname on which freesurfer was run
-def get_fshostname(verbosity, sparsity=False):
+def get_fshostname():
     retval = ""
     if os.path.isfile(subjectroot + optionfiles["done"]):
         reg_machine = re.compile(r'.*HOST (?P<machine>\w*).*')
@@ -205,7 +205,7 @@ def get_fshostname(verbosity, sparsity=False):
 
 
 ##-- Extract the username under which freesurfer was run
-def get_fsusername(verbosity, sparsity=False):
+def get_fsusername():
     retval = ""
     if os.path.isfile(subjectroot + optionfiles["done"]):
         reg_username = re.compile(r'.*USER (?P<username>\w*).*')
@@ -224,7 +224,7 @@ def get_fsusername(verbosity, sparsity=False):
 ##-- Extract the date the original MRI was collected
 #    This function is embarrassingly confined to GENOA data on one machine.
 #    All other usage will get "NA" for their dates.
-def get_scandate(sparsity=False):
+def get_scandate():
     retval = "NA"
     potential_files = glob.glob("/mri/gmbi.*.original/{0}/{0}*spgr.img".format(subjectid))
     if len(potential_files) != 1:
@@ -244,7 +244,7 @@ def get_scandate(sparsity=False):
 
 
 ##-- Extract a volume or area
-def get_fsvolume(whichnum="", sparsity=False):
+def get_fsvolume(whichnum=""):
     retval = ""
     # Merge dictionaries
     dict_whole = get_fsdata('aseg')
@@ -410,7 +410,16 @@ def write_mrsfile(wholedict, csvmrsfile):
     print("Writing standard mrs data for {sid} to {fp}".format(sid=subjectid, fp=csvmrsfile))
     outputcsv(rowNames, rowData, csvmrsfile)
 
-
+##-- Print data differently depending on sparsity and verbosity
+def output_item(the_item):
+    if args.sparse:
+        print(the_item)
+    else:
+        print("{sid} : {d}".format(sid=subjectid, d=the_item))
+    
+    
+    
+    
 ##------------------------------------------------------------------------------
 ##-- Define expected command-line arguments
 ##------------------------------------------------------------------------------
@@ -439,6 +448,7 @@ subjectroot = os.path.abspath(args.rootfolder)
 
 ##-- Do we have a legitimate set of freesurfer data to work with?
 if not input_ok(subjectroot):
+    # Errors will be printed from input_ok
     sys.exit()
 
 ##------------------------------------------------------------------------------
@@ -457,27 +467,15 @@ else:
 
 ##-- Deal with versioning
 if args.version_short:
-    if args.sparse:
-        print(get_fsversion(verbosity="short", sparsity=args.sparse))
-    else:
-        print("{sid} : {ver}".format(sid=subjectid, ver=get_fsversion(verbosity="short", sparsity=args.sparse)))
+    output_item(get_fsversion(verbosity="short"))
 elif args.version_long:
-    if args.sparse:
-        print(get_fsversion(verbosity="long", sparsity=args.sparse))
-    else:
-        print("{sid} : {ver}".format(sid=subjectid, ver=get_fsversion(verbosity="long", sparsity=args.sparse)))
+    output_item(get_fsversion(verbosity="long"))
 
 ##-- Deal with elapsed times
 if args.time_short:
-    if args.sparse:
-        print(get_fstime(verbosity="short", timetype="elapsed", sparsity=args.sparse))
-    else:
-        print("{sid} : {elapsed}".format(sid=subjectid, elapsed=get_fstime(verbosity="short", timetype="elapsed", sparsity=args.sparse)))
+    output_item(get_fstime(verbosity="short", timetype="elapsed", sparsity=False))
 elif args.time_long:
-    if args.sparse:
-        print(get_fstime(verbosity="long", timetype="elapsed", sparsity=args.sparse))
-    else:
-        print("{sid} : {elapsed}".format(sid=subjectid, elapsed=get_fstime(verbosity="long", timetype="elapsed", sparsity=args.sparse)))
+    output_item(get_fstime(verbosity="long", timetype="elapsed", sparsity=False))
 
 ##-- Determine the completion status
 if args.completion:
@@ -492,45 +490,30 @@ if args.completion:
             f.close()
             print("{} : Error in '{}'".format(subjectid, lastline))
     if os.path.isfile(subjectroot + optionfiles["done"]):
-        if args.sparse:
-            print("complete")
-        else:
-            print("{} : complete".format(subjectid))
+        output_item("complete")
 
 ##-- Determine the user or hostname
 if args.username:
-    if args.sparse:
-        print(get_fsusername("short", args.sparse))
-    else:
-        print("{sid} : {username}".format(sid=subjectid, username=get_fsusername("short", args.sparse)))
+    output_item(get_fsusername())
 
 ##-- Determine the machine name that ran FreeSurfer
 if args.machine:
-    if args.sparse:
-        print(get_fshostname("short", args.sparse))
-    else:
-        print("{sid} : {hostname}".format(sid=subjectid, hostname=get_fshostname("short", args.sparse)))
+    output_item(get_fshostname())
 
 ##-- Determine the date FreeSurfer completed
 if args.completedate:
-    if args.sparse:
-        print(get_fstime(timetype='end', sparsity=args.sparse))
-    else:
-        print("{sid} : {d}".format(sid=subjectid, d=get_fstime(timetype='end', sparsity=args.sparse)))
+    output_item(get_fstime(timetype='end'))
 
 ##-- Determine the date the MRI was done
 if args.scandate:
-    if args.sparse:
-        print(get_scandate(args.sparse))
-    else:
-        print("{sid} : {d}".format(sid=subjectid, d=get_scandate(args.sparse)))
+    output_item(get_scandate())
 
 ##-- Look up item in FreeSurfer files
 if args.item:
     if args.sparse:
         print(get_fsvolume(whichnum=args.item, sparsity=args.sparse))
     else:
-        print("{sid} : {structname} = {structvalue}".format(sid=subjectid, structname=args.item, structvalue=get_fsvolume(whichnum=args.item, sparsity=args.sparse)))
+        print("{sid} : {structname} = {structvalue}".format(sid=subjectid, structname=args.item, structvalue=get_fsvolume(whichnum=args.item)))
 
 ##-- Generate whole csv with bunches of data
 if args.mrsfile:
