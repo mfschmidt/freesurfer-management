@@ -132,7 +132,20 @@ def get_mrs_dict():
 		('mrs126', 'Right-Amygdala'),
 		('mrs127', 'Amygdala_T'),
 		('mrs128', 'Vetrical_T'),
-		('mrs129', 'eTIV')
+		('mrs129', 'eTIV'),
+		('mrs3M', 'Scandate_Month'),
+		('mrs3D', 'Scandate_Day'),
+		('mrs3Y', 'Scandate_Year'),
+		('mrs3T', 'Scandate_Time'),
+		('mrs7M', 'Analysisdate_Month'),
+		('mrs7D', 'Analysisdate_Day'),
+		('mrs7Y', 'Analysisdate_Year'),
+		('mrs7T', 'Analysisdate_Time'),
+		('FormStatusMRS', 'Form_Status'),
+		('LoginNameMRS', 'Login_Name'),
+		('LocationNameMRS', 'Location_Name'),
+		('DateStampInitialMRS', 'Date_Stamp_Initial'),
+		('TimeStampInitialMRS', 'Time_Stamp_Initial')
 	])
 	return(mrs2fs_dict)
 
@@ -376,7 +389,7 @@ def get_rhaparc_dict():
 	return(fs530dict_rh_aparc)
 
 ##-- Extract dictionary of metadata
-def get_mrsmeta_dict(subjectid, fstime):
+def get_mrsmeta_dict(subjectid, scandate, fstime):
 	mydict = OrderedDict([
 		("ID", subjectid),               # "Label"
 		("SubjectID", subjectid),        # "ARIC Subject ID"
@@ -388,11 +401,11 @@ def get_mrsmeta_dict(subjectid, fstime):
 		("Vers", "0100"),                # usu 0100 in ARIC
 		("mrs1", subjectid),             # "Participant ID"
 		("mrs2", "NA"),                  # "Acrostic ID"
-		("mrs3", "NA"),                  # "Date of Scan" 31DEC16:00:00:00 format
+		("mrs3", scandate),              # "Date of Scan" ISO_8601 format
 		("mrs4", "1.5"),                 # "Field Strength of MR Scanner"
 		("mrs5", "NA"),                  # "Series Number" 3
 		("mrs6", "NA"),                  # "Series Description" 2
-		("mrs7", fstime)                 # "Date of Analysis Completed" 31DEC16:00:00:00 format
+		("mrs7", fstime)                 # "Date of Analysis Completed" ISO_8601 format
 	])
 	return(mydict)
 
@@ -401,7 +414,7 @@ def get_mrsmeta_dict(subjectid, fstime):
 def get_metadict(subjectid, fstime):
 	mydict = OrderedDict([
 		("ID", subjectid),               # "Label"
-		("fscompletedate", fstime)       # "Date of Analysis Completed" 31DEC16:00:00:00 format
+		("fscompletedate", fstime)       # "Date of Analysis Completed" ISO_8601 format
 	])
 	return(mydict)
 
