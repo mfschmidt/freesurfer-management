@@ -5,11 +5,11 @@
 # The path where jobs are queued up on the supercomputer
 INITIAL_PWD=$(pwd)
 REM_OUTBOX=/ptmp/r1774/outbox
-LOC_INBOX=/mri/gmbi.rochester.fs600
+LOC_INBOX=/mri/gmbi.jackson.fs600
 
 # First, count how many waiting images are finished on the supercomputer.
 # Using "cluster" depends on an entry in /home/$USER/.ssh/config defining it.
-REM_LIST=$(ssh cluster "2>/dev/null cd $REM_OUTBOX; ls -1 *.pickup")
+REM_LIST=$(ssh cluster "cd $REM_OUTBOX; 2>/dev/null ls -1 *.pickup")
 REM_ACTUAL=$(echo "${REM_LIST}" | wc -l)
 echo "============-- $(date) --============"
 echo "Found ${REM_ACTUAL} pickups on the cluster."
