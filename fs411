@@ -38,39 +38,21 @@ import csv  # To write the final csv mrs file easily
 from collections import OrderedDict  # for named dictionaries of volumes and such
 from datetime import date
 from datetime import timedelta
-from dateutil import parser
-from dateutil.tz import gettz
 import time
 import glob  # for searching for original spgr files, fullname unknown
 
 # Local file containing dictionaries of FreeSurfer variables
 from mrs_dicts import *
+from fs_fxns import *
 
 ##------------------------------------------------------------------------------
 ##-- Define constants and globals for later use
 ##------------------------------------------------------------------------------
 TS_Format = "%a %b %d %H:%M:%S %Z %Y"
 
-## Define any globals
-neededfiles = {'log': '/scripts/recon-all.log',
-               'stamp': '/scripts/build-stamp.txt',
-               'cmd': '/scripts/recon-all.cmd',
-               'aseg': '/stats/aseg.stats',
-               'wmparc': '/stats/wmparc.stats',
-               'aparc1l': '/stats/lh.aparc.stats',
-               'aparc1r': '/stats/rh.aparc.stats',
-               'aparc2l': '/stats/lh.aparc.a2009s.stats',
-               'aparc2r': '/stats/rh.aparc.a2009s.stats',
-               'aparc3l': '/stats/lh.aparc.DKTatlas40.stats',
-               'aparc3r': '/stats/rh.aparc.DKTatlas40.stats'}
-optionfiles = {'err': '/scripts/recon-all.error',
-               'done': '/scripts/recon-all.done'}
-
 subjectid = ""
 ts_begin = datetime.datetime(1975, 3, 11, 0, 0, 0)
 ts_end = ts_begin
-tzinfos = {"CST": gettz("America/Chicago"), "CDT": gettz("America/Chicago"),
-           "EST": gettz("America/New_York"), "EDT": gettz("America/New_York")}
 StartedOver = ' '
 left_hcv = ''
 right_hcv = ''
@@ -87,7 +69,7 @@ def input_ok(mypath):
     if os.path.isdir(mypath):
         partial = False
         full = True
-        for fd, fv in neededfiles.items():
+        for fk, fv in fs_file("all").items():
             if os.path.isfile(mypath + fv):
                 partial = True
             else:
@@ -98,7 +80,7 @@ def input_ok(mypath):
         elif partial:
             # This is actually OK for retrieving error status, but returning True means
             # it is now necessary to make every function robust to missing files.
-            # print("I found \"{argdir}\". It has some freesurfer data, but not everything expected.".format(argdir=mypath))
+            # print("I found \"{0}\". It has incomplete FreeSurfer data.".format(mypath))
             return True
         else:
             print("I found \"{argdir}\", but it does not appear to contain freesurfer data.".format(argdir=mypath))
@@ -106,126 +88,15 @@ def input_ok(mypath):
     else:
         print("I cannot find the directory, \"{argdir}\".".format(argdir=mypath))
         return False
-    print(
-        "Damn! This is a bug in the \"input_ok()\" function. Execution should never have reached this point. I am not detecting files appropriately.")
+    print("This is a bug in the \"input_ok()\" function. I am not detecting files appropriately.")
     return False
 
 
-## end input_ok function
-
-
-##-- Extract the version information
-def get_fsversion(verbosity="short"):
-    stampfile = subjectroot + neededfiles['stamp']
-    version_string = ""
-    if not os.path.isfile(stampfile):
-        return ("N/A")
-    f = open(stampfile)
-    for line in f:
-        if '\n' == line[-1]:
-            line = line[:-1]
-        version_string = line
-    f.close()
-    if verbosity == "short":
-        short_version_string = version_string[version_string.find("pub-v") + len("pub-v"):]
-        return (short_version_string[:5])
-    # else verbosity must be long
-    return (version_string)
-
-
-# / end get_fsversion() function
-
-
-##-- Extract the elapsed time
-def get_fstime(verbosity="short", timetype="elapsed", sparsity=False):
-    cmdfile = subjectroot + neededfiles['cmd']
-    if not os.path.isfile(cmdfile):
-        return ("N/A")
-    timestrings = []
-    # tfstring="%a %b %d %X %Z %Y"
-    first_time = datetime.datetime.now()
-    last_time = datetime.datetime.now()
-    this_time = datetime.datetime.now()
-    reg_tstamp = re.compile(r'^#@# (?P<task>.*) (?P<stmp>\w{3}\s+\w+\s+\d+\s+\d\d:\d\d:\d\d\s+\w{3}\s+\d{4})')
-    f = open(cmdfile)
-    n = 0
-    for line in f:
-        mat_tstamp = reg_tstamp.match(line)
-        if mat_tstamp:
-            if n == 0:
-                # first_time = datetime.datetime.strptime(mat_tstamp.group('stmp'), tfstring)
-                first_time = parser.parse(mat_tstamp.group('stmp'), tzinfos=tzinfos)
-                last_time = first_time
-            n += 1
-            # this_time = datetime.datetime.strptime(mat_tstamp.group('stmp'), tfstring)
-            this_time = parser.parse(mat_tstamp.group('stmp'), tzinfos=tzinfos)
-            td_small = this_time - last_time
-            td_large = this_time - first_time
-            if verbosity == "long":
-                if sparsity:
-                    timestrings.append("{:2} : {:5.0f}\n".format(n, td_small.total_seconds()))
-                else:
-                    timestrings.append("{:2} : {:28} : {} ({:5.0f}, {:5.0f})\n".format(n, mat_tstamp.group('task'),
-                                                                                       mat_tstamp.group('stmp'),
-                                                                                       td_small.total_seconds(),
-                                                                                       td_large.total_seconds()))
-            last_time = this_time
-    f.close()
-    if verbosity == "short":
-        if sparsity:
-            timestrings.append("{:5.0f}".format(td_large.total_seconds()))
-        else:
-            timestrings.append(
-                "{:5.0f} seconds ({:2.1f} hrs)".format(td_large.total_seconds(), td_large.total_seconds() / 3600.0))
-    if (timetype == "elapsed"):
-        return (''.join(timestrings))
-    if (timetype == "begin"):
-        return (first_time.strftime("%Y-%m-%dT%H:%M:%S%z"))
-    if (timetype == "end"):
-        return (last_time.strftime("%Y-%m-%dT%H:%M:%S%z"))
-
-
-## / end get_fselapsed() function
-
-
-##-- Extract the hostname on which freesurfer was run
-def get_fshostname():
-    retval = ""
-    if os.path.isfile(subjectroot + optionfiles["done"]):
-        reg_machine = re.compile(r'.*HOST (?P<machine>\w*).*')
-        f = open(subjectroot + optionfiles["done"])
-        for line in f:
-            mat_machine = reg_machine.match(line)
-            if mat_machine:
-                retval = mat_machine.group('machine')
-        f.close()
-    return (retval)
-
-
-## / end get_fshostname() function
-
-
-##-- Extract the username under which freesurfer was run
-def get_fsusername():
-    retval = ""
-    if os.path.isfile(subjectroot + optionfiles["done"]):
-        reg_username = re.compile(r'.*USER (?P<username>\w*).*')
-        f = open(subjectroot + optionfiles["done"])
-        for line in f:
-            mat_username = reg_username.match(line)
-            if mat_username:
-                retval = mat_username.group('username')
-        f.close()
-    return (retval)
-
-
-## / end get_fsusername() function
-
-
-##-- Extract the date the original MRI was collected
-#    This function is embarrassingly confined to GENOA data on one machine.
+# Extract the date the original MRI was collected
+#    This function is embarrassingly confined to GENOA data on my one server.
+#    I need the function and don't see a better way to handle it, though.
 #    All other usage will get "NA" for their dates.
-def get_scandate():
+def get_scan_date():
     retval = "NA"
     potential_files = glob.glob("/mri/gmbi.*.original/{0}/{0}*spgr.img".format(subjectid))
     if len(potential_files) != 1:
@@ -241,55 +112,6 @@ def get_scandate():
     return (retval)
 
 
-## / end get_fsusername() function
-
-
-##-- Extract a volume or area
-def get_fsvolume(whichnum=""):
-    retval = ""
-    # Merge dictionaries
-    dict_whole = get_fsdata('aseg')
-    dict_whole.update(get_fsdata('wmparc'))
-    dict_whole.update(OrderedDict([(k + '_L', v) for k, v in get_fsdata('aparc1l').items()]))
-    dict_whole.update(OrderedDict([(k + '_R', v) for k, v in get_fsdata('aparc1r').items()]))
-    try:
-        retval = dict_whole[whichnum]
-    except KeyError:
-        print("{0} cannot be found as a StructName in {1}".format(args.item, args.rootfolder))
-        retval = "0.00"
-    return (retval)
-
-
-## / end get_fsvolume() function
-
-
-##-- Retrieve data from FreeSurfer stats file
-def get_fsdata(statsfile):
-    mydict = {}
-    if os.path.isfile(subjectroot + neededfiles[statsfile]):
-        # Each stats file has two sections with data, a head section and
-        # a body section (called CORT for aparcs). We need to check and mine both.
-        reg_measurehead = re.compile(r'^#\s+Measure\s+[\w_\-]+,\s+(?P<Name>[\w_\-]+),.+?(?P<Volume>[\d\.]+),\s(?P<Dim>.+)$')
-        reg_measurebody = re.compile(r'^\s*\d+\s+\d+\s+\d+\s+(?P<Volume>[\d\.]+)\s+(?P<Name>[\w_\-]+).+')
-        reg_measurecort = re.compile(r'^(?P<Name>[\w_\-]+)\s+\d+\s+\d+\s+(?P<Volume>[\d\.]+).+')
-        f = open(subjectroot + neededfiles[statsfile])
-        for line in f:
-            mat_measurehead = reg_measurehead.match(line)
-            mat_measurebody = reg_measurebody.match(line)
-            mat_measurecort = reg_measurecort.match(line)
-            if mat_measurehead:
-                # print("HEAD: {Name}={Volume}".format(Name=mat_measurehead.group('Name'), Volume = mat_measurehead.group('Volume')))
-                mydict[mat_measurehead.group('Name')] = mat_measurehead.group('Volume')
-            if mat_measurebody:
-                # print("BODY: {Name}={Volume}".format(Name=mat_measurebody.group('Name'), Volume = mat_measurebody.group('Volume')))
-                mydict[mat_measurebody.group('Name')] = mat_measurebody.group('Volume')
-            if mat_measurecort:
-                # print("CORT: {Name}={Volume}".format(Name=mat_measurecort.group('Name'), Volume = mat_measurecort.group('Volume')))
-                mydict[mat_measurecort.group('Name')] = mat_measurecort.group('Volume')
-        f.close()
-    return (mydict)
-
-
 ##-- Write fields and values to csv file
 def outputcsv(mynames, myvalues, myfile):
     file_is_new = not os.path.isfile(myfile)
@@ -301,11 +123,11 @@ def outputcsv(mynames, myvalues, myfile):
 
 
 ##-- Save out the freesurfer data in tabular format for a single fs file
-def write_fsfile(outfilename, fstype, whichVersion="600"):
+def write_fsfile(outfilename, fstype, which_version="6.0.0"):
     myname = outfilename
     if args.filetype == "all":
         if myname[-4:] != ".csv":
-            myname = nyname + ".csv"
+            myname = myname + ".csv"
         if "mrs" in myname:
             myname = myname.replace("mrs", fstype)
         else:
@@ -313,29 +135,29 @@ def write_fsfile(outfilename, fstype, whichVersion="600"):
     mydata = []
     rownames = []
     rowdata = []
-    for n, d in get_metadict(subjectid, get_fstime("short", "end")).items():
+    for n, d in get_metadict(subjectid, get_fs_time(subjectroot, "short", "end")).items():
         mydata.append((n, d))
 
     if fstype == 'aseg':
-        aseg_dict = get_fsdata(fstype)
-        for n in get_aseg_ordered_list(whichVersion):
+        aseg_dict = get_fs_data(subjectroot, fstype)
+        for n in get_aseg_ordered_list(which_version):
             try:
                 mydata.append((n, aseg_dict[n]))
             except KeyError:
-                #print("   keyerror, can't find {0} in {1}".format(n, fstype))
+                # print("   keyerror, can't find {0} in {1}".format(n, fstype))
                 mydata.append((n, "NA"))
     elif fstype == 'wmparc':
-        wmparc_dict = get_fsdata(fstype)
-        for n in get_wmparc_ordered_list(whichVersion):
+        wmparc_dict = get_fs_data(subjectroot, fstype)
+        for n in get_wmparc_ordered_list(which_version):
             try:
                 mydata.append((n, wmparc_dict[n]))
             except KeyError:
-                #print("   keyerror, can't find {0} in {1}".format(n, fstype))
+                # print("   keyerror, can't find {0} in {1}".format(n, fstype))
                 mydata.append((n, "NA"))
     elif fstype == 'aparc':
-        aparc_dict = OrderedDict([(k + '_L', v) for k, v in get_fsdata('aparc1l').items()])
-        aparc_dict.update(OrderedDict([(k + '_R', v) for k, v in get_fsdata('aparc1r').items()]))
-        for n in get_aparc_ordered_list(whichVersion):
+        aparc_dict = OrderedDict([(k + '_L', v) for k, v in get_fs_data(subjectroot, 'aparc1l').items()])
+        aparc_dict.update(OrderedDict([(k + '_R', v) for k, v in get_fs_data(subjectroot, 'aparc1r').items()]))
+        for n in get_aparc_ordered_list(which_version):
             n_L = "{0}_L".format(n)
             n_R = "{0}_R".format(n)
             try:
@@ -368,10 +190,10 @@ def write_mrsfile(wholedict, csvmrsfile):
             myname = myname[:-4] + '.mrs.csv'
     rowNames = []
     rowData = []
-    for n, d in get_mrsmeta_dict(subjectid, get_scandate(), get_fstime("short", "end")).items():
+    for n, d in get_mrsmeta_dict(subjectid, get_scan_date(), get_fs_time(subjectroot, "short", "end")).items():
         rowNames.append(n)
         rowData.append(d)
-    for n, d in get_mrs_dict().items():
+    for n, d in get_mrs_dict(get_fsversion(subjectroot, "short")).items():
         # each key-value pair looks like 'mrs#':'Name'
         # append the identifier (key) to the beginning of the mrs list
         rowNames.append(n)
@@ -381,21 +203,21 @@ def write_mrsfile(wholedict, csvmrsfile):
             rowData.append(wholedict.get(d, "FAIL"))
         else:
             if d == "Scandate_Month":
-                rowData.append(get_scandate()[5:7])
+                rowData.append(get_scan_date()[5:7])
             elif d == "Scandate_Day":
-                rowData.append(get_scandate()[8:10])
+                rowData.append(get_scan_date()[8:10])
             elif d == "Scandate_Year":
-                rowData.append(get_scandate()[0:4])
+                rowData.append(get_scan_date()[0:4])
             elif d == "Scandate_Time":
-                rowData.append(get_scandate()[11:])
+                rowData.append(get_scan_date()[11:])
             elif d == "Analysisdate_Month":
-                rowData.append(get_fstime("short", "end")[5:7])
+                rowData.append(get_fs_time(subjectroot, "short", "end")[5:7])
             elif d == "Analysisdate_Day":
-                rowData.append(get_fstime("short", "end")[8:10])
+                rowData.append(get_fs_time(subjectroot, "short", "end")[8:10])
             elif d == "Analysisdate_Year":
-                rowData.append(get_fstime("short", "end")[0:4])
+                rowData.append(get_fs_time(subjectroot, "short", "end")[0:4])
             elif d == "Analysisdate_Time":
-                rowData.append(get_fstime("short", "end")[11:])
+                rowData.append(get_fs_time(subjectroot, "short", "end")[11:])
             elif d == "ThalamusProper_T":
                 # This exception is necessary to match the tweaked mrs variable names
                 lval = float(wholedict.get('Left-Thalamus-Proper', "0.0"))  # Match at Left-***
@@ -496,68 +318,67 @@ else:
 
 ##-- Deal with versioning
 if args.version_short:
-    output_item(get_fsversion(verbosity="short"))
+    output_item(get_fsversion(subjectroot, verbosity="short"))
 elif args.version_long:
-    output_item(get_fsversion(verbosity="long"))
+    output_item(get_fsversion(subjectroot, verbosity="long"))
 
 ##-- Deal with elapsed times
 if args.time_short:
-    output_item(get_fstime(verbosity="short", timetype="elapsed", sparsity=False))
+    output_item(get_fs_time(subjectroot, verbosity="short", timetype="elapsed", sparsity=False))
 elif args.time_long:
-    output_item(get_fstime(verbosity="long", timetype="elapsed", sparsity=False))
+    output_item(get_fs_time(subjectroot, verbosity="long", timetype="elapsed", sparsity=False))
 
 ##-- Determine the completion status
 if args.completion:
-    if os.path.isfile(subjectroot + optionfiles["err"]):
+    if os.path.isfile(subjectroot + fs_file("err")):
         if args.sparse:
             print("error   ")
         else:
-            f = open(subjectroot + optionfiles["err"])
+            f = open(subjectroot + fs_file("err"))
             lastline = ""
             for line in f:
                 lastline = line
             f.close()
             print("{} : Error in '{}'".format(subjectid, lastline))
-    if os.path.isfile(subjectroot + optionfiles["done"]):
+    if os.path.isfile(subjectroot + fs_file("done")):
         output_item("complete")
 
 ##-- Determine the user or hostname
 if args.username:
-    output_item(get_fsusername())
+    output_item(get_fs_username(subjectroot))
 
 ##-- Determine the machine name that ran FreeSurfer
 if args.machine:
-    output_item(get_fshostname())
+    output_item(get_fs_hostname(subjectroot))
 
 ##-- Determine the date FreeSurfer completed
 if args.completedate:
-    output_item(get_fstime(timetype='end'))
+    output_item(get_fs_time(subjectroot, timetype='end'))
 
 ##-- Determine the date the MRI was done
 if args.scandate:
-    output_item(get_scandate())
+    output_item(get_scan_date())
 
 ##-- Look up item in FreeSurfer files
 if args.item:
     if args.sparse:
-        print(get_fsvolume(whichnum=args.item, sparsity=args.sparse))
+        print(get_fs_item(subjectroot, which_item=args.item))
     else:
         print("{sid} : {structname} = {structvalue}".format(sid=subjectid, structname=args.item,
-                                                            structvalue=get_fsvolume(whichnum=args.item)))
+                                                            structvalue=get_fs_item(subjectroot, which_item=args.item)))
 
-##-- Generate whole csvs with bunches of data
+# Generate whole csvs with bunches of data
 if args.outfile:
     if args.filetype == "aseg" or args.filetype == "all":
-        write_fsfile(args.outfile, 'aseg', get_fsversion(verbosity="short"))
+        write_fsfile(args.outfile, 'aseg', get_fsversion(subjectroot, verbosity="short"))
     if args.filetype == "wmparc" or args.filetype == "all":
-        write_fsfile(args.outfile, 'wmparc', get_fsversion(verbosity="short"))
+        write_fsfile(args.outfile, 'wmparc', get_fsversion(subjectroot, verbosity="short"))
     if args.filetype == "aparc" or args.filetype == "all":
-        write_fsfile(args.outfile, 'aparc', get_fsversion(verbosity="short"))
+        write_fsfile(args.outfile, 'aparc', get_fsversion(subjectroot, verbosity="short"))
     if args.filetype == "mrs" or args.filetype == "all":
-        dict_whole = get_fsdata('aseg')
-        dict_whole.update(get_fsdata('wmparc'))
-        dict_whole.update(OrderedDict([(k + '_L', v) for k, v in get_fsdata('aparc1l').items()]))
-        dict_whole.update(OrderedDict([(k + '_R', v) for k, v in get_fsdata('aparc1r').items()]))
+        dict_whole = get_fs_data(subjectroot, 'aseg')
+        dict_whole.update(get_fs_data(subjectroot, 'wmparc'))
+        dict_whole.update(OrderedDict([(k + '_L', v) for k, v in get_fs_data(subjectroot, 'aparc1l').items()]))
+        dict_whole.update(OrderedDict([(k + '_R', v) for k, v in get_fs_data(subjectroot, 'aparc1r').items()]))
         write_mrsfile(dict_whole, args.outfile)
 
-# print("Done!")
