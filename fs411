@@ -1,32 +1,8 @@
 #!/usr/bin/python3
 
-## Input:
-#    a full path to a folder containing Freesurfer output
-#    This usu. looks something like "/home/mike/Brains/Rochester/R000001"
-#
-
-## Output:
-#    Depending on the arguments provided at presentation, data derived
-#    from the Freesurfer process, see arguments for details.
-#    This is for extracting subject data like brain volumes, and for
-#    metadata concerning the freesurfer process that generated them.
-
-## We expect to find certain folders and files within any of these structures.
-## Differences in filecounts here can indicate failure at different places
-## through the pipeline.
-#    ./bem             ?
-#    ./label           ~69 files (.ctab, .annot, .label) containing labels for regions within images
-#    ./mri             ~34 files, 24 output images with .mgz extensions
-#         /orig        The mgz version of the input image
-#         /transforms  Talairach transformations of the original
-#    ./scripts         ~12 log files, useful for determining environment and commands issued
-#    ./src             ?
-#    ./stats           18 .stats files, quantitative results for volumes, areas, etc.
-#    ./surf            ~70 files
-#    ./tmp             ?
-#    ./touch           Records of some commands in the pipeline
-#    ./trash           ?
-
+# fs411
+# See argparse section below for details on input and output.
+# This allows a lot of flexibility in extracting information from FreeSurfer runs.
 
 # Use others' code to make our lives easier
 import sys  # To get command-line arguments
@@ -135,17 +111,17 @@ def write_fsfile(outfilename, fstype, which_version="6.0.0"):
     mydata = []
     rownames = []
     rowdata = []
-    for n, d in get_metadict(subjectid, get_fs_time(subjectroot, "short", "end")).items():
+    for n, d in get_meta_dict(subjectid, get_fs_time(subjectroot, "short", "end")).items():
         mydata.append((n, d))
 
     if fstype == 'aseg':
         aseg_dict = get_fs_data(subjectroot, fstype)
-        for n in get_aseg_ordered_list(which_version):
+        for k, v in aseg_dict.items():
             try:
-                mydata.append((n, aseg_dict[n]))
+                mydata.append((k, aseg_dict[n]))
             except KeyError:
-                # print("   keyerror, can't find {0} in {1}".format(n, fstype))
-                mydata.append((n, "NA"))
+                # print("   keyerror, can't find {0} in {1}".format(k, fstype))
+                mydata.append((k, "NA"))
     elif fstype == 'wmparc':
         wmparc_dict = get_fs_data(subjectroot, fstype)
         for n in get_wmparc_ordered_list(which_version):
@@ -190,7 +166,7 @@ def write_mrsfile(wholedict, csvmrsfile):
             myname = myname[:-4] + '.mrs.csv'
     rowNames = []
     rowData = []
-    for n, d in get_mrsmeta_dict(subjectid, get_scan_date(), get_fs_time(subjectroot, "short", "end")).items():
+    for n, d in get_mrs_meta_dict(subjectid, get_scan_date(), get_fs_time(subjectroot, "short", "end")).items():
         rowNames.append(n)
         rowData.append(d)
     for n, d in get_mrs_dict(get_fsversion(subjectroot, "short")).items():
