@@ -28,7 +28,7 @@
 #    ./trash           ?
 
 
-## Use others' code to make our lives easier
+# Use others' code to make our lives easier
 import sys  # To get command-line arguments
 import argparse  # A framework for parsing command-line arguments
 import os  # For digging through directories and files
@@ -64,7 +64,7 @@ hcvfile = 0
 ##------------------------------------------------------------------------------
 
 
-##-- Sanity check... Do things look like we expect?
+# Sanity check... Do things look like we expect?
 def input_ok(mypath):
     if os.path.isdir(mypath):
         partial = False
@@ -112,7 +112,7 @@ def get_scan_date():
     return (retval)
 
 
-##-- Write fields and values to csv file
+# Write fields and values to csv file
 def outputcsv(mynames, myvalues, myfile):
     file_is_new = not os.path.isfile(myfile)
     with open(myfile, 'a') as csvfile:
@@ -122,7 +122,7 @@ def outputcsv(mynames, myvalues, myfile):
         mywriter.writerow(myvalues)
 
 
-##-- Save out the freesurfer data in tabular format for a single fs file
+# Save out the freesurfer data in tabular format for a single fs file
 def write_fsfile(outfilename, fstype, which_version="6.0.0"):
     myname = outfilename
     if args.filetype == "all":
@@ -179,7 +179,7 @@ def write_fsfile(outfilename, fstype, which_version="6.0.0"):
     outputcsv(rownames, rowdata, myname)
 
 
-##-- Order the variables and their labels for an mrs-formatted file
+# Order the variables and their labels for an mrs-formatted file
 def write_mrsfile(wholedict, csvmrsfile):
     myname = csvmrsfile
     if args.filetype == "all":
@@ -260,7 +260,7 @@ def write_mrsfile(wholedict, csvmrsfile):
     outputcsv(rowNames, rowData, myname)
 
 
-##-- Print data differently depending on sparsity and verbosity
+# Print data differently depending on sparsity and verbosity
 def output_item(the_item):
     if args.sparse:
         print(the_item)
@@ -273,7 +273,7 @@ def output_item(the_item):
 ##------------------------------------------------------------------------------
 
 
-##-- Parse command-line arguments
+# Parse command-line arguments
 argparser = argparse.ArgumentParser(description='Dig for information from FreeSurfer output')
 argparser.add_argument('rootfolder', help='Provide a subject\'s root FreeSurfer output folder.')
 argparser.add_argument('-s', '--sparse', action='store_true', help='Avoid printing the ID, keep it sparse.')
@@ -297,17 +297,18 @@ args = argparser.parse_args()
 
 subjectroot = os.path.abspath(args.rootfolder)
 
-##-- Do we have a legitimate set of freesurfer data to work with?
+# Do we have a legitimate set of freesurfer data to work with?
 if not input_ok(subjectroot):
     # Errors will be printed from input_ok
     sys.exit()
+
 
 ##------------------------------------------------------------------------------
 ##-- Finally, with functions and arguments ready, do our thing...
 ##------------------------------------------------------------------------------
 
 
-##-- Start by determining the subject ID
+# Start by determining the subject ID
 reg_id = re.compile(r'.*(?P<sid>[A-Za-z][0-9]{6})')
 mat_id = reg_id.match(subjectroot)
 if mat_id:
@@ -316,19 +317,19 @@ else:
     print("I can't determine a subject's ID from '{}'.".format(subjectroot))
     sys.exit()
 
-##-- Deal with versioning
+# Deal with versioning
 if args.version_short:
     output_item(get_fsversion(subjectroot, verbosity="short"))
 elif args.version_long:
     output_item(get_fsversion(subjectroot, verbosity="long"))
 
-##-- Deal with elapsed times
+# Deal with elapsed times
 if args.time_short:
     output_item(get_fs_time(subjectroot, verbosity="short", timetype="elapsed", sparsity=False))
 elif args.time_long:
     output_item(get_fs_time(subjectroot, verbosity="long", timetype="elapsed", sparsity=False))
 
-##-- Determine the completion status
+# Determine the completion status
 if args.completion:
     if os.path.isfile(subjectroot + fs_file("err")):
         if args.sparse:
@@ -343,29 +344,31 @@ if args.completion:
     if os.path.isfile(subjectroot + fs_file("done")):
         output_item("complete")
 
-##-- Determine the user or hostname
+# Determine the user or hostname
 if args.username:
     output_item(get_fs_username(subjectroot))
 
-##-- Determine the machine name that ran FreeSurfer
+# Determine the machine name that ran FreeSurfer
 if args.machine:
     output_item(get_fs_hostname(subjectroot))
 
-##-- Determine the date FreeSurfer completed
+# Determine the date FreeSurfer completed
 if args.completedate:
     output_item(get_fs_time(subjectroot, timetype='end'))
 
-##-- Determine the date the MRI was done
+# Determine the date the MRI was done
 if args.scandate:
     output_item(get_scan_date())
 
-##-- Look up item in FreeSurfer files
+# Look up item in FreeSurfer files
 if args.item:
     if args.sparse:
         print(get_fs_item(subjectroot, which_item=args.item))
     else:
-        print("{sid} : {structname} = {structvalue}".format(sid=subjectid, structname=args.item,
-                                                            structvalue=get_fs_item(subjectroot, which_item=args.item)))
+        print("{sid} : {structname} = {structvalue}".format(
+            sid=subjectid, structname=args.item,
+            structvalue=get_fs_item(subjectroot, which_item=args.item)
+        ))
 
 # Generate whole csvs with bunches of data
 if args.outfile:
