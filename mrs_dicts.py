@@ -345,197 +345,71 @@ def get_aseg_dict(which_version):
 
 
 # Map from FreeSurfer's lh.aparc.stats file to mrs variable
-def get_lhaparc_dict(which_version):
-    if which_version == "5.2.0" or which_version == "5.3.0":
-        fsdict_lh_aparc = OrderedDict([
-            ('NumVert', 'mrs'),
-            ('WhiteSurfArea', 'mrs'),
-            ('MeanThickness', 'mrs'),
-            ('bankssts', 'mrs8'),
-            ('caudalanteriorcingulate', 'mrs11'),
-            ('caudalmiddlefrontal', 'mrs14'),
-            ('cuneus', 'mrs17'),
-            ('entorhinal', 'mrs20'),
-            ('fusiform', 'mrs23'),
-            ('inferiorparietal', 'mrs26'),
-            ('inferiortemporal', 'mrs29'),
-            ('isthmuscingulate', 'mrs32'),
-            ('lateraloccipital', 'mrs35'),
-            ('lateralorbitofrontal', 'mrs38'),
-            ('lingual', 'mrs41'),
-            ('medialorbitofrontal', 'mrs44'),
-            ('middletemporal', 'mrs47'),
-            ('parahippocampal', 'mrs50'),
-            ('paracentral', 'mrs53'),
-            ('parsopercularis', 'mrs56'),
-            ('parsorbitalis', 'mrs59'),
-            ('parstriangularis', 'mrs62'),
-            ('pericalcarine', 'mrs65'),
-            ('postcentral', 'mrs68'),
-            ('posteriorcingulate', 'mrs71'),
-            ('precentral', 'mrs74'),
-            ('precuneus', 'mrs77'),
-            ('rostralanteriorcingulate', 'mrs80'),
-            ('rostralmiddlefrontal', 'mrs83'),
-            ('superiorfrontal', 'mrs86'),
-            ('superiorparietal', 'mrs89'),
-            ('superiortemporal', 'mrs92'),
-            ('supramarginal', 'mrs95'),
-            ('frontalpole', 'mrs98'),
-            ('temporalpole', 'mrs101'),
-            ('transversetemporal', 'mrs104'),
-            ('insula', 'mrs107'),
-        ])
-        return fsdict_lh_aparc
-    elif which_version == "6.0.0":
-        fsdict_lh_aparc = OrderedDict([
-            ('NumVert', 'mrs'),
-            ('WhiteSurfArea', 'mrs'),
-            ('MeanThickness', 'mrs'),
-            ('BrainSegVol', 'mrs'),
-            ('BrainSegVolNotVent', 'mrs'),
-            ('BrainSegVolNotVentSurf', 'mrs'),
-            ('CortexVol', 'mrs'),
-            ('SupraTentorialVol', 'mrs'),
-            ('SupraTentorialVolNotVent', 'mrs'),
-            ('eTIV', 'mrs'),
-            ('bankssts', 'mrs8'),
-            ('caudalanteriorcingulate', 'mrs11'),
-            ('caudalmiddlefrontal', 'mrs14'),
-            ('cuneus', 'mrs17'),
-            ('entorhinal', 'mrs20'),
-            ('fusiform', 'mrs23'),
-            ('inferiorparietal', 'mrs26'),
-            ('inferiortemporal', 'mrs29'),
-            ('isthmuscingulate', 'mrs32'),
-            ('lateraloccipital', 'mrs35'),
-            ('lateralorbitofrontal', 'mrs38'),
-            ('lingual', 'mrs41'),
-            ('medialorbitofrontal', 'mrs44'),
-            ('middletemporal', 'mrs47'),
-            ('parahippocampal', 'mrs50'),
-            ('paracentral', 'mrs53'),
-            ('parsopercularis', 'mrs56'),
-            ('parsorbitalis', 'mrs59'),
-            ('parstriangularis', 'mrs62'),
-            ('pericalcarine', 'mrs65'),
-            ('postcentral', 'mrs68'),
-            ('posteriorcingulate', 'mrs71'),
-            ('precentral', 'mrs74'),
-            ('precuneus', 'mrs77'),
-            ('rostralanteriorcingulate', 'mrs80'),
-            ('rostralmiddlefrontal', 'mrs83'),
-            ('superiorfrontal', 'mrs86'),
-            ('superiorparietal', 'mrs89'),
-            ('superiortemporal', 'mrs92'),
-            ('supramarginal', 'mrs95'),
-            ('frontalpole', 'mrs98'),
-            ('temporalpole', 'mrs101'),
-            ('transversetemporal', 'mrs104'),
-            ('insula', 'mrs107'),
-        ])
-        return fsdict_lh_aparc
+def get_aparc_dict(which_version):
+    default_dict = OrderedDict([
+        ('NumVert', 'mrs'),
+        ('WhiteSurfArea', 'mrs'),
+        ('MeanThickness', 'mrs'),
+        ('BrainSegVol', 'mrs'),
+        ('BrainSegVolNotVent', 'mrs'),
+        ('BrainSegVolNotVentSurf', 'mrs'),
+        ('CortexVol', 'mrs'),
+        ('SupraTentorialVol', 'mrs'),
+        ('SupraTentorialVolNotVent', 'mrs'),
+        ('eTIV', 'mrs'),
+        ('bankssts', 'mrs8'),
+        ('caudalanteriorcingulate', 'mrs11'),
+        ('caudalmiddlefrontal', 'mrs14'),
+        ('cuneus', 'mrs17'),
+        ('entorhinal', 'mrs20'),
+        ('fusiform', 'mrs23'),
+        ('inferiorparietal', 'mrs26'),
+        ('inferiortemporal', 'mrs29'),
+        ('isthmuscingulate', 'mrs32'),
+        ('lateraloccipital', 'mrs35'),
+        ('lateralorbitofrontal', 'mrs38'),
+        ('lingual', 'mrs41'),
+        ('medialorbitofrontal', 'mrs44'),
+        ('middletemporal', 'mrs47'),
+        ('parahippocampal', 'mrs50'),
+        ('paracentral', 'mrs53'),
+        ('parsopercularis', 'mrs56'),
+        ('parsorbitalis', 'mrs59'),
+        ('parstriangularis', 'mrs62'),
+        ('pericalcarine', 'mrs65'),
+        ('postcentral', 'mrs68'),
+        ('posteriorcingulate', 'mrs71'),
+        ('precentral', 'mrs74'),
+        ('precuneus', 'mrs77'),
+        ('rostralanteriorcingulate', 'mrs80'),
+        ('rostralmiddlefrontal', 'mrs83'),
+        ('superiorfrontal', 'mrs86'),
+        ('superiorparietal', 'mrs89'),
+        ('superiortemporal', 'mrs92'),
+        ('supramarginal', 'mrs95'),
+        ('frontalpole', 'mrs98'),
+        ('temporalpole', 'mrs101'),
+        ('transversetemporal', 'mrs104'),
+        ('insula', 'mrs107'),
+    ])
+    if which_version in ["5.2.0", "5.3.0"]:
+        del default_dict['BrainSegVol']
+        del default_dict['BrainSegVolNotVent']
+        del default_dict['BrainSegVolNotVentSurf']
+        del default_dict['CortexVol']
+        del default_dict['SupraTentorialVol']
+        del default_dict['SupraTentorialVolNotVent']
+        del default_dict['eTIV']
+        return default_dict
+    elif which_version in ["6.0.0"]:
+        return default_dict
     else:
-        print("Version {0} is not supported.".format(which_version))
+        print("Version {0} is not supported by get_aparc_dict".format(which_version))
+        return OrderedDict()
 
 
-# Map from FreeSurfer's rh.aparc.stats file to mrs variable
-def get_rhaparc_dict(which_version):
-    if which_version == "5.2.0" or which_version == "5.3.0":
-        fsdict_rh_aparc = OrderedDict([
-            ('NumVert', 'mrs'),
-            ('WhiteSurfArea', 'mrs'),
-            ('MeanThickness', 'mrs'),
-            ('bankssts', 'mrs8'),
-            ('caudalanteriorcingulate', 'mrs11'),
-            ('caudalmiddlefrontal', 'mrs14'),
-            ('cuneus', 'mrs17'),
-            ('entorhinal', 'mrs20'),
-            ('fusiform', 'mrs23'),
-            ('inferiorparietal', 'mrs26'),
-            ('inferiortemporal', 'mrs29'),
-            ('isthmuscingulate', 'mrs32'),
-            ('lateraloccipital', 'mrs35'),
-            ('lateralorbitofrontal', 'mrs38'),
-            ('lingual', 'mrs41'),
-            ('medialorbitofrontal', 'mrs44'),
-            ('middletemporal', 'mrs47'),
-            ('parahippocampal', 'mrs50'),
-            ('paracentral', 'mrs53'),
-            ('parsopercularis', 'mrs56'),
-            ('parsorbitalis', 'mrs59'),
-            ('parstriangularis', 'mrs62'),
-            ('pericalcarine', 'mrs65'),
-            ('postcentral', 'mrs68'),
-            ('posteriorcingulate', 'mrs71'),
-            ('precentral', 'mrs74'),
-            ('precuneus', 'mrs77'),
-            ('rostralanteriorcingulate', 'mrs80'),
-            ('rostralmiddlefrontal', 'mrs83'),
-            ('superiorfrontal', 'mrs86'),
-            ('superiorparietal', 'mrs89'),
-            ('superiortemporal', 'mrs92'),
-            ('supramarginal', 'mrs95'),
-            ('frontalpole', 'mrs98'),
-            ('temporalpole', 'mrs101'),
-            ('transversetemporal', 'mrs104'),
-            ('insula', 'mrs107'),
-        ])
-        return fsdict_rh_aparc
-    elif which_version == "6.0.0":
-        fsdict_rh_aparc = OrderedDict([
-            ('NumVert', 'mrs'),
-            ('WhiteSurfArea', 'mrs'),
-            ('MeanThickness', 'mrs'),
-            ('BrainSegVol', 'mrs'),
-            ('BrainSegVolNotVent', 'mrs'),
-            ('BrainSegVolNotVentSurf', 'mrs'),
-            ('CortexVol', 'mrs'),
-            ('SupraTentorialVol', 'mrs'),
-            ('SupraTentorialVolNotVent', 'mrs'),
-            ('eTIV', 'mrs'),
-            ('bankssts', 'mrs8'),
-            ('caudalanteriorcingulate', 'mrs11'),
-            ('caudalmiddlefrontal', 'mrs14'),
-            ('cuneus', 'mrs17'),
-            ('entorhinal', 'mrs20'),
-            ('fusiform', 'mrs23'),
-            ('inferiorparietal', 'mrs26'),
-            ('inferiortemporal', 'mrs29'),
-            ('isthmuscingulate', 'mrs32'),
-            ('lateraloccipital', 'mrs35'),
-            ('lateralorbitofrontal', 'mrs38'),
-            ('lingual', 'mrs41'),
-            ('medialorbitofrontal', 'mrs44'),
-            ('middletemporal', 'mrs47'),
-            ('parahippocampal', 'mrs50'),
-            ('paracentral', 'mrs53'),
-            ('parsopercularis', 'mrs56'),
-            ('parsorbitalis', 'mrs59'),
-            ('parstriangularis', 'mrs62'),
-            ('pericalcarine', 'mrs65'),
-            ('postcentral', 'mrs68'),
-            ('posteriorcingulate', 'mrs71'),
-            ('precentral', 'mrs74'),
-            ('precuneus', 'mrs77'),
-            ('rostralanteriorcingulate', 'mrs80'),
-            ('rostralmiddlefrontal', 'mrs83'),
-            ('superiorfrontal', 'mrs86'),
-            ('superiorparietal', 'mrs89'),
-            ('superiortemporal', 'mrs92'),
-            ('supramarginal', 'mrs95'),
-            ('frontalpole', 'mrs98'),
-            ('temporalpole', 'mrs101'),
-            ('transversetemporal', 'mrs104'),
-            ('insula', 'mrs107'),
-        ])
-        return fsdict_rh_aparc
-    else:
-        print("Version {0} is not supported.".format(which_version))
-
-
-##-- Extract dictionary of metadata
-def get_mrsmeta_dict(subjectid, scandate, fstime):
+# Extract dictionary of metadata
+def get_mrs_meta_dict(subjectid, scandate, fstime):
     return OrderedDict([
         ("ID", subjectid),  # "Label"
         ("SubjectID", subjectid),  # "ARIC Subject ID"
@@ -555,157 +429,18 @@ def get_mrsmeta_dict(subjectid, scandate, fstime):
     ])
 
 
-##-- Extract dictionary of metadata
-def get_metadict(subjectid, fstime):
+# Extract dictionary of metadata
+def get_meta_dict(subjectid, fstime):
     return OrderedDict([
         ("ID", subjectid),  # "Label"
         ("fscompletedate", fstime),  # "Date of Analysis Completed" ISO_8601 format
     ])
 
 
-##-- Ordered lists of items, necessary for consistently ordered csv files
+# Ordered lists of items, necessary for consistently ordered csv files
 def get_aseg_ordered_list(which_version):
-    if which_version == "5.2.0" or which_version == "5.3.0":
-        return [
-            'BrainSegVol',
-            'BrainSegVolNotVent',
-            'BrainSegVolNotVentSurf',
-            'lhCortexVol',
-            'rhCortexVol',
-            'CortexVol',
-            'lhCorticalWhiteMatterVol',
-            'rhCorticalWhiteMatterVol',
-            'CorticalWhiteMatterVol',
-            'SubCortGrayVol',
-            'TotalGrayVol',
-            'SupraTentorialVol',
-            'SupraTentorialVolNotVent',
-            'SupraTentorialVolNotVentVox',
-            'MaskVol',
-            'BrainSegVol-to-eTIV',
-            'MaskVol-to-eTIV',
-            'lhSurfaceHoles',
-            'rhSurfaceHoles',
-            'SurfaceHoles',
-            'eTIV',
-            'Left-Lateral-Ventricle',
-            'Left-Inf-Lat-Vent',
-            'Left-Cerebellum-White-Matter',
-            'Left-Cerebellum-Cortex',
-            'Left-Thalamus-Proper',
-            'Left-Caudate',
-            'Left-Putamen',
-            'Left-Pallidum',
-            '3rd-Ventricle',
-            '4th-Ventricle',
-            'Brain-Stem',
-            'Left-Hippocampus',
-            'Left-Amygdala',
-            'CSF',
-            'Left-Accumbens-area',
-            'Left-VentralDC',
-            'Left-vessel',
-            'Left-choroid-plexus',
-            'Right-Lateral-Ventricle',
-            'Right-Inf-Lat-Vent',
-            'Right-Cerebellum-White-Matter',
-            'Right-Cerebellum-Cortex',
-            'Right-Thalamus-Proper',
-            'Right-Caudate',
-            'Right-Putamen',
-            'Right-Pallidum',
-            'Right-Hippocampus',
-            'Right-Amygdala',
-            'Right-Accumbens-area',
-            'Right-VentralDC',
-            'Right-vessel',
-            'Right-choroid-plexus',
-            '5th-Ventricle',
-            'WM-hypointensities',
-            'Left-WM-hypointensities',
-            'Right-WM-hypointensities',
-            'non-WM-hypointensities',
-            'Left-non-WM-hypointensities',
-            'Right-non-WM-hypointensities',
-            'Optic-Chiasm',
-            'CC_Posterior',
-            'CC_Mid_Posterior',
-            'CC_Central',
-            'CC_Mid_Anterior',
-            'CC_Anterior',
-        ]
-    elif which_version == "6.0.0":
-        return [
-            'BrainSegVol',
-            'BrainSegVolNotVent',
-            'BrainSegVolNotVentSurf',
-            'VentricleChoroidVol',
-            'lhCortexVol',
-            'rhCortexVol',
-            'CortexVol',
-            'lhCerebralWhiteMatterVol',
-            'rhCerebralWhiteMatterVol',
-            'CerebralWhiteMatterVol',
-            'SubCortGrayVol',
-            'TotalGrayVol',
-            'SupraTentorialVol',
-            'SupraTentorialVolNotVent',
-            'SupraTentorialVolNotVentVox',
-            'MaskVol',
-            'BrainSegVol-to-eTIV',
-            'MaskVol-to-eTIV',
-            'lhSurfaceHoles',
-            'rhSurfaceHoles',
-            'SurfaceHoles',
-            'eTIV',
-            'Left-Lateral-Ventricle',
-            'Left-Inf-Lat-Vent',
-            'Left-Cerebellum-White-Matter',
-            'Left-Cerebellum-Cortex',
-            'Left-Thalamus-Proper',
-            'Left-Caudate',
-            'Left-Putamen',
-            'Left-Pallidum',
-            '3rd-Ventricle',
-            '4th-Ventricle',
-            'Brain-Stem',
-            'Left-Hippocampus',
-            'Left-Amygdala',
-            'CSF',
-            'Left-Accumbens-area',
-            'Left-VentralDC',
-            'Left-vessel',
-            'Left-choroid-plexus',
-            'Right-Lateral-Ventricle',
-            'Right-Inf-Lat-Vent',
-            'Right-Cerebellum-White-Matter',
-            'Right-Cerebellum-Cortex',
-            'Right-Thalamus-Proper',
-            'Right-Caudate',
-            'Right-Putamen',
-            'Right-Pallidum',
-            'Right-Hippocampus',
-            'Right-Amygdala',
-            'Right-Accumbens-area',
-            'Right-VentralDC',
-            'Right-vessel',
-            'Right-choroid-plexus',
-            '5th-Ventricle',
-            'WM-hypointensities',
-            'Left-WM-hypointensities',
-            'Right-WM-hypointensities',
-            'non-WM-hypointensities',
-            'Left-non-WM-hypointensities',
-            'Right-non-WM-hypointensities',
-            'Optic-Chiasm',
-            'CC_Posterior',
-            'CC_Mid_Posterior',
-            'CC_Central',
-            'CC_Mid_Anterior',
-            'CC_Anterior',
-        ]
-    else:
-        print("Version {0} is not supported.".format(which_version))
+    return [k for k, v in get_aparc_dict(which_version).items()]
+
 
 
 def get_wmparc_ordered_list(which_version):
