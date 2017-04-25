@@ -8,8 +8,11 @@ from dateutil.tz import gettz
 from dateutil import parser
 import re  # Regular expression support
 
+from mrs_dicts import *
+
 tzinfos = {"CST": gettz("America/Chicago"), "CDT": gettz("America/Chicago"),
            "EST": gettz("America/New_York"), "EDT": gettz("America/New_York")}
+
 
 # Map short strings to file paths within FreeSurfer heierarchy
 def fs_file(which_file):
@@ -37,7 +40,7 @@ def fs_file(which_file):
 
 
 # Extract the version information
-def get_fsversion(subject_root, verbosity="short"):
+def get_fs_version(subject_root, verbosity="short"):
     stampfile = subject_root + fs_file('stamp')
     version_string = ""
     if not os.path.isfile(stampfile):
@@ -51,8 +54,8 @@ def get_fsversion(subject_root, verbosity="short"):
     if verbosity == "short":
         short_version_string = version_string[version_string.find("pub-v") + len("pub-v"):]
         return (short_version_string[:5])
-    # else verbosity must be long
-    return version_string
+    else:
+        return version_string
 
 
 # Extract the elapsed time
@@ -139,18 +142,18 @@ def get_fs_username(subject_root):
 
 # Retrieve data from FreeSurfer stats file
 def get_fs_data(subject_root, stats_file):
-    my_dict = {}
+    my_dict = OrderedDict()
     # Each stats file has two sections with data, a head section and
     # a body section (called CORT for aparcs). We need to check and mine both.
-    reg_measure_head = re.compile(r'^#\s+Measure\s+[\w_\-]+,\s+(?P<Name>[\w_\-]+),.+?(?P<Volume>[\d\.]+),\s(?P<Dim>.+)$')
-    reg_measure_body = re.compile(r'^\s*\d+\s+\d+\s+\d+\s+(?P<Volume>[\d\.]+)\s+(?P<Name>[\w_\-]+).+')
-    reg_measure_cort = re.compile(r'^(?P<Name>[\w_\-]+)\s+\d+\s+\d+\s+(?P<Volume>[\d\.]+).+')
+    re_head = re.compile(r'^#\s+Measure\s+[\w_\-]+,\s+(?P<Name>[\w_\-]+),.+?(?P<Volume>[\d\.]+),\s(?P<Dim>.+)$')
+    re_body = re.compile(r'^\s*\d+\s+\d+\s+\d+\s+(?P<Volume>[\d\.]+)\s+(?P<Name>[\w_\-]+).+')
+    re_cort = re.compile(r'^(?P<Name>[\w_\-]+)\s+\d+\s+\d+\s+(?P<Volume>[\d\.]+).+')
     if os.path.isfile(subject_root + fs_file(stats_file)):
         f = open(subject_root + fs_file(stats_file))
         for line in f:
-            mat_measure_head = reg_measure_head.match(line)
-            mat_measure_body = reg_measure_body.match(line)
-            mat_measure_cort = reg_measure_cort.match(line)
+            mat_measure_head = re_head.match(line)
+            mat_measure_body = re_body.match(line)
+            mat_measure_cort = re_cort.match(line)
             if mat_measure_head:
                 # print("HEAD: {Name}={Volume}".format(
                 #     Name=mat_measure_head.group('Name'),
@@ -191,3 +194,32 @@ def get_fs_item(subject_root, which_item=""):
     return retval
 
 
+# Join left and right aparc data without duplicating shared fields
+def fs_join_aparc_dicts(left_dict, right_dict, which_version="6.0.0"):
+    ambi_dict = OrderedDict()
+    # Use the ordered clean index dictionary as an index, pull data from arguments
+    for k, v in get_aparc_dict(which_version).items():
+        if k in get_shared_aparc_items():
+            # duplicated items are only stored once
+            print("Found {0} as joint item.".format(k))
+            if left_dict[k] == right_dict[k]:
+                ambi_dict[k] = left_dict[k]
+            else:
+                print("ERROR: Joining aparc: lh ({lh}) and rh ({rh}) disagree on {v}".format(
+                    lh = left_dict[k], rh = right_dict[k], v=k,
+                ))
+        else:
+            # items with one for left and one for right are each stored independently
+            print("Found {0} as independent aparc item".format(k))
+            try:
+                ambi_dict[k + '_L'] = left_dict[k]
+            except KeyError:
+                print("   keyerror, can't find {0} in lh {1}".format(k, 'aparc'))
+                ambi_dict[k + '_L'] = "NA"
+            try:
+                ambi_dict[k + '_R'] = right_dict[k]
+            except KeyError:
+                print("   keyerror, can't find {0} in rh {1}".format(k, 'aparc'))
+                ambi_dict[k + '_R'] = "NA"
+
+    return ambi_dict

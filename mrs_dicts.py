@@ -2,9 +2,6 @@
 
 from collections import OrderedDict
 
-# for avoiding mostly duplicated dictionaries:
-# d2 = OrderedDict([('__C__', v) if k == 'c' else (k, v) for k, v in d.items()])
-
 
 # This file is no more than dictionaries to look up local database names
 # in relation to the names used in FreeSurfer. This makes maintaining
@@ -331,7 +328,7 @@ def get_aseg_dict(which_version):
     if which_version in ["5.2.0", "5.3.0"]:
         del default_dict['VentricleChoroidVol']
         return default_dict
-    elif which_version in ["6.0.0."]:
+    elif which_version in ["6.0.0"]:
         different_dict = OrderedDict([
             ('lhCerebralWhiteMatterVol', v) if k == 'lhCorticalWhiteMatterVol' else
             ('rhCerebralWhiteMatterVol', v) if k == 'rhCorticalWhiteMatterVol' else
@@ -408,6 +405,18 @@ def get_aparc_dict(which_version):
         return OrderedDict()
 
 
+# Get list of items in aparc that are whole brain, and reported in both r and l sides
+def get_shared_aparc_items():
+    return ['BrainSegVol',
+            'BrainSegVolNotVent',
+            'BrainSegVolNotVentSurf',
+            'CortexVol',
+            'SupraTentorialVol',
+            'SupraTentorialVolNotVent',
+            'eTIV',
+            ]
+
+
 # Extract dictionary of metadata
 def get_mrs_meta_dict(subjectid, scandate, fstime):
     return OrderedDict([
@@ -435,262 +444,3 @@ def get_meta_dict(subjectid, fstime):
         ("ID", subjectid),  # "Label"
         ("fscompletedate", fstime),  # "Date of Analysis Completed" ISO_8601 format
     ])
-
-
-# Ordered lists of items, necessary for consistently ordered csv files
-def get_aseg_ordered_list(which_version):
-    return [k for k, v in get_aparc_dict(which_version).items()]
-
-
-
-def get_wmparc_ordered_list(which_version):
-    if which_version == "5.2.0" or which_version == "5.3.0":
-        return [
-            'lhCorticalWhiteMatterVol',
-            'rhCorticalWhiteMatterVol',
-            'CorticalWhiteMatterVol',
-            'MaskVol',
-            'eTIV',
-            'wm-lh-bankssts',
-            'wm-lh-caudalanteriorcingulate',
-            'wm-lh-caudalmiddlefrontal',
-            'wm-lh-cuneus',
-            'wm-lh-entorhinal',
-            'wm-lh-fusiform',
-            'wm-lh-inferiorparietal',
-            'wm-lh-inferiortemporal',
-            'wm-lh-isthmuscingulate',
-            'wm-lh-lateraloccipital',
-            'wm-lh-lateralorbitofrontal',
-            'wm-lh-lingual',
-            'wm-lh-medialorbitofrontal',
-            'wm-lh-middletemporal',
-            'wm-lh-parahippocampal',
-            'wm-lh-paracentral',
-            'wm-lh-parsopercularis',
-            'wm-lh-parsorbitalis',
-            'wm-lh-parstriangularis',
-            'wm-lh-pericalcarine',
-            'wm-lh-postcentral',
-            'wm-lh-posteriorcingulate',
-            'wm-lh-precentral',
-            'wm-lh-precuneus',
-            'wm-lh-rostralanteriorcingulate',
-            'wm-lh-rostralmiddlefrontal',
-            'wm-lh-superiorfrontal',
-            'wm-lh-superiorparietal',
-            'wm-lh-superiortemporal',
-            'wm-lh-supramarginal',
-            'wm-lh-frontalpole',
-            'wm-lh-temporalpole',
-            'wm-lh-transversetemporal',
-            'wm-lh-insula',
-            'wm-rh-bankssts',
-            'wm-rh-caudalanteriorcingulate',
-            'wm-rh-caudalmiddlefrontal',
-            'wm-rh-cuneus',
-            'wm-rh-entorhinal',
-            'wm-rh-fusiform',
-            'wm-rh-inferiorparietal',
-            'wm-rh-inferiortemporal',
-            'wm-rh-isthmuscingulate',
-            'wm-rh-lateraloccipital',
-            'wm-rh-lateralorbitofrontal',
-            'wm-rh-lingual',
-            'wm-rh-medialorbitofrontal',
-            'wm-rh-middletemporal',
-            'wm-rh-parahippocampal',
-            'wm-rh-paracentral',
-            'wm-rh-parsopercularis',
-            'wm-rh-parsorbitalis',
-            'wm-rh-parstriangularis',
-            'wm-rh-pericalcarine',
-            'wm-rh-postcentral',
-            'wm-rh-posteriorcingulate',
-            'wm-rh-precentral',
-            'wm-rh-precuneus',
-            'wm-rh-rostralanteriorcingulate',
-            'wm-rh-rostralmiddlefrontal',
-            'wm-rh-superiorfrontal',
-            'wm-rh-superiorparietal',
-            'wm-rh-superiortemporal',
-            'wm-rh-supramarginal',
-            'wm-rh-frontalpole',
-            'wm-rh-temporalpole',
-            'wm-rh-transversetemporal',
-            'wm-rh-insula',
-            'Left-UnsegmentedWhiteMatter',
-            'Right-UnsegmentedWhiteMatter',
-        ]
-    elif which_version == "6.0.0":
-        return [
-            'lhCerebralWhiteMatterVol',
-            'rhCerebralWhiteMatterVol',
-            'CerebralWhiteMatterVol',
-            'MaskVol',
-            'eTIV',
-            'wm-lh-bankssts',
-            'wm-lh-caudalanteriorcingulate',
-            'wm-lh-caudalmiddlefrontal',
-            'wm-lh-cuneus',
-            'wm-lh-entorhinal',
-            'wm-lh-fusiform',
-            'wm-lh-inferiorparietal',
-            'wm-lh-inferiortemporal',
-            'wm-lh-isthmuscingulate',
-            'wm-lh-lateraloccipital',
-            'wm-lh-lateralorbitofrontal',
-            'wm-lh-lingual',
-            'wm-lh-medialorbitofrontal',
-            'wm-lh-middletemporal',
-            'wm-lh-parahippocampal',
-            'wm-lh-paracentral',
-            'wm-lh-parsopercularis',
-            'wm-lh-parsorbitalis',
-            'wm-lh-parstriangularis',
-            'wm-lh-pericalcarine',
-            'wm-lh-postcentral',
-            'wm-lh-posteriorcingulate',
-            'wm-lh-precentral',
-            'wm-lh-precuneus',
-            'wm-lh-rostralanteriorcingulate',
-            'wm-lh-rostralmiddlefrontal',
-            'wm-lh-superiorfrontal',
-            'wm-lh-superiorparietal',
-            'wm-lh-superiortemporal',
-            'wm-lh-supramarginal',
-            'wm-lh-frontalpole',
-            'wm-lh-temporalpole',
-            'wm-lh-transversetemporal',
-            'wm-lh-insula',
-            'wm-rh-bankssts',
-            'wm-rh-caudalanteriorcingulate',
-            'wm-rh-caudalmiddlefrontal',
-            'wm-rh-cuneus',
-            'wm-rh-entorhinal',
-            'wm-rh-fusiform',
-            'wm-rh-inferiorparietal',
-            'wm-rh-inferiortemporal',
-            'wm-rh-isthmuscingulate',
-            'wm-rh-lateraloccipital',
-            'wm-rh-lateralorbitofrontal',
-            'wm-rh-lingual',
-            'wm-rh-medialorbitofrontal',
-            'wm-rh-middletemporal',
-            'wm-rh-parahippocampal',
-            'wm-rh-paracentral',
-            'wm-rh-parsopercularis',
-            'wm-rh-parsorbitalis',
-            'wm-rh-parstriangularis',
-            'wm-rh-pericalcarine',
-            'wm-rh-postcentral',
-            'wm-rh-posteriorcingulate',
-            'wm-rh-precentral',
-            'wm-rh-precuneus',
-            'wm-rh-rostralanteriorcingulate',
-            'wm-rh-rostralmiddlefrontal',
-            'wm-rh-superiorfrontal',
-            'wm-rh-superiorparietal',
-            'wm-rh-superiortemporal',
-            'wm-rh-supramarginal',
-            'wm-rh-frontalpole',
-            'wm-rh-temporalpole',
-            'wm-rh-transversetemporal',
-            'wm-rh-insula',
-            'Left-UnsegmentedWhiteMatter',
-            'Right-UnsegmentedWhiteMatter',
-        ]
-    else:
-        print("Version {0} is not supported.".format(which_version))
-
-
-def get_aparc_ordered_list(which_version):
-    if which_version == "5.2.0" or which_version == "5.3.0":
-        return [
-            'NumVert',
-            'WhiteSurfArea',
-            'MeanThickness',
-            'bankssts',
-            'caudalanteriorcingulate',
-            'caudalmiddlefrontal',
-            'cuneus',
-            'entorhinal',
-            'fusiform',
-            'inferiorparietal',
-            'inferiortemporal',
-            'isthmuscingulate',
-            'lateraloccipital',
-            'lateralorbitofrontal',
-            'lingual',
-            'medialorbitofrontal',
-            'middletemporal',
-            'parahippocampal',
-            'paracentral',
-            'parsopercularis',
-            'parsorbitalis',
-            'parstriangularis',
-            'pericalcarine',
-            'postcentral',
-            'posteriorcingulate',
-            'precentral',
-            'precuneus',
-            'rostralanteriorcingulate',
-            'rostralmiddlefrontal',
-            'superiorfrontal',
-            'superiorparietal',
-            'superiortemporal',
-            'supramarginal',
-            'frontalpole',
-            'temporalpole',
-            'transversetemporal',
-            'insula',
-        ]
-    elif which_version == "6.0.0":
-        return [
-            'NumVert',
-            'WhiteSurfArea',
-            'MeanThickness',
-            'BrainSegVol',
-            'BrainSegVolNotVent',
-            'BrainSegVolNotVentSurf',
-            'CortexVol',
-            'SupraTentorialVol',
-            'SupraTentorialVolNotVent',
-            'eTIV',
-            'bankssts',
-            'caudalanteriorcingulate',
-            'caudalmiddlefrontal',
-            'cuneus',
-            'entorhinal',
-            'fusiform',
-            'inferiorparietal',
-            'inferiortemporal',
-            'isthmuscingulate',
-            'lateraloccipital',
-            'lateralorbitofrontal',
-            'lingual',
-            'medialorbitofrontal',
-            'middletemporal',
-            'parahippocampal',
-            'paracentral',
-            'parsopercularis',
-            'parsorbitalis',
-            'parstriangularis',
-            'pericalcarine',
-            'postcentral',
-            'posteriorcingulate',
-            'precentral',
-            'precuneus',
-            'rostralanteriorcingulate',
-            'rostralmiddlefrontal',
-            'superiorfrontal',
-            'superiorparietal',
-            'superiortemporal',
-            'supramarginal',
-            'frontalpole',
-            'temporalpole',
-            'transversetemporal',
-            'insula',
-        ]
-    else:
-        print("Version {0} is not supported.".format(which_version))

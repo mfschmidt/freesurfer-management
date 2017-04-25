@@ -21,9 +21,9 @@ import glob  # for searching for original spgr files, fullname unknown
 from mrs_dicts import *
 from fs_fxns import *
 
-##------------------------------------------------------------------------------
-##-- Define constants and globals for later use
-##------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# -- Define constants and globals for later use
+# ------------------------------------------------------------------------------
 TS_Format = "%a %b %d %H:%M:%S %Z %Y"
 
 subjectid = ""
@@ -35,9 +35,9 @@ right_hcv = ''
 hcvfile = 0
 
 
-##------------------------------------------------------------------------------
-##-- Define functions for later use
-##------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# -- Define functions for later use
+# ------------------------------------------------------------------------------
 
 
 # Sanity check... Do things look like we expect?
@@ -64,14 +64,12 @@ def input_ok(mypath):
     else:
         print("I cannot find the directory, \"{argdir}\".".format(argdir=mypath))
         return False
-    print("This is a bug in the \"input_ok()\" function. I am not detecting files appropriately.")
-    return False
 
 
 # Extract the date the original MRI was collected
 #    This function is embarrassingly confined to GENOA data on my one server.
 #    I need the function and don't see a better way to handle it, though.
-#    All other usage will get "NA" for their dates.
+#    All other usage will get "NA" for their MRI scan dates.
 def get_scan_date():
     retval = "NA"
     potential_files = glob.glob("/mri/gmbi.*.original/{0}/{0}*spgr.img".format(subjectid))
@@ -111,41 +109,34 @@ def write_fsfile(outfilename, fstype, which_version="6.0.0"):
     mydata = []
     rownames = []
     rowdata = []
-    for n, d in get_meta_dict(subjectid, get_fs_time(subjectroot, "short", "end")).items():
-        mydata.append((n, d))
+    for k, v in get_meta_dict(subjectid, get_fs_time(subjectroot, "short", "end")).items():
+        mydata.append((k, v))
 
     if fstype == 'aseg':
         aseg_dict = get_fs_data(subjectroot, fstype)
-        for k, v in aseg_dict.items():
+        for k, v in get_aseg_dict(which_version).items():
             try:
-                mydata.append((k, aseg_dict[n]))
+                mydata.append((k, aseg_dict[k]))  # order from get_aseg_dict, data from get_fs_data
             except KeyError:
-                # print("   keyerror, can't find {0} in {1}".format(k, fstype))
+                print("   keyerror, can't find {0} in {1}".format(k, fstype))
                 mydata.append((k, "NA"))
     elif fstype == 'wmparc':
         wmparc_dict = get_fs_data(subjectroot, fstype)
-        for n in get_wmparc_ordered_list(which_version):
+        # We must cycle through a fresh ordered dictionary to maintain order of data
+        for k, v in get_wmparc_dict(which_version).items():
             try:
-                mydata.append((n, wmparc_dict[n]))
+                mydata.append((k, wmparc_dict[k]))  # order from get_wmparc_dict, data from get_fs_data
             except KeyError:
-                # print("   keyerror, can't find {0} in {1}".format(n, fstype))
-                mydata.append((n, "NA"))
+                print("   keyerror, can't find {0} in {1}".format(k, fstype))
+                mydata.append((k, "NA"))
     elif fstype == 'aparc':
-        aparc_dict = OrderedDict([(k + '_L', v) for k, v in get_fs_data(subjectroot, 'aparc1l').items()])
-        aparc_dict.update(OrderedDict([(k + '_R', v) for k, v in get_fs_data(subjectroot, 'aparc1r').items()]))
-        for n in get_aparc_ordered_list(which_version):
-            n_L = "{0}_L".format(n)
-            n_R = "{0}_R".format(n)
-            try:
-                mydata.append((n_L, aparc_dict[n_L]))
-            except KeyError:
-                #print("   keyerror, can't find {0} in {1}".format(n_L, fstype))
-                mydata.append((n_L, "NA"))
-            try:
-                mydata.append((n_R, aparc_dict[n_R]))
-            except KeyError:
-                #print("   keyerror, can't find {0} in {1}".format(n_R, fstype))
-                mydata.append((n_R, "NA"))
+        aparc_dict_l = get_fs_data(subjectroot, 'aparc1l')
+        # OrderedDict([(k + '_L', v) for k, v in get_fs_data(subjectroot, 'aparc1l').items()])
+        aparc_dict_r = get_fs_data(subjectroot, 'aparc1r')
+        # OrderedDict([(k + '_R', v) for k, v in get_fs_data(subjectroot, 'aparc1r').items()]))
+        aparc_dict = fs_join_aparc_dicts(aparc_dict_l, aparc_dict_r, which_version)
+        for k, v in aparc_dict.items():
+            mydata.append((k, v))
 
     for i in mydata:
         rownames.append(i[0])
@@ -156,7 +147,7 @@ def write_fsfile(outfilename, fstype, which_version="6.0.0"):
 
 
 # Order the variables and their labels for an mrs-formatted file
-def write_mrsfile(wholedict, csvmrsfile):
+def write_mrsfile(csvmrsfile):
     myname = csvmrsfile
     if args.filetype == "all":
         # with "all", we are generating four uniquely named files from a single input file.
@@ -166,17 +157,22 @@ def write_mrsfile(wholedict, csvmrsfile):
             myname = myname[:-4] + '.mrs.csv'
     rowNames = []
     rowData = []
+
+    dict_whole = get_fs_data(subjectroot, 'aseg')
+    dict_whole.update(get_fs_data(subjectroot, 'wmparc'))
+    dict_whole.update(OrderedDict([(k + '_L', v) for k, v in get_fs_data(subjectroot, 'aparc1l').items()]))
+    dict_whole.update(OrderedDict([(k + '_R', v) for k, v in get_fs_data(subjectroot, 'aparc1r').items()]))
     for n, d in get_mrs_meta_dict(subjectid, get_scan_date(), get_fs_time(subjectroot, "short", "end")).items():
         rowNames.append(n)
         rowData.append(d)
-    for n, d in get_mrs_dict(get_fsversion(subjectroot, "short")).items():
+    for n, d in get_mrs_dict(get_fs_version(subjectroot, "short")).items():
         # each key-value pair looks like 'mrs#':'Name'
         # append the identifier (key) to the beginning of the mrs list
         rowNames.append(n)
         # and find the appropriate data value to match it
-        if wholedict.get(d, "FAIL") != "FAIL":
+        if dict_whole.get(d, "FAIL") != "FAIL":
             # Successful lookup of mrs number from FreeSurfer description
-            rowData.append(wholedict.get(d, "FAIL"))
+            rowData.append(dict_whole.get(d, "FAIL"))
         else:
             if d == "Scandate_Month":
                 rowData.append(get_scan_date()[5:7])
@@ -196,37 +192,41 @@ def write_mrsfile(wholedict, csvmrsfile):
                 rowData.append(get_fs_time(subjectroot, "short", "end")[11:])
             elif d == "ThalamusProper_T":
                 # This exception is necessary to match the tweaked mrs variable names
-                lval = float(wholedict.get('Left-Thalamus-Proper', "0.0"))  # Match at Left-***
-                rval = float(wholedict.get('Right-Thalamus-Proper', "0.0"))  # Match at Right-***
+                lval = float(dict_whole.get('Left-Thalamus-Proper', "0.0"))  # Match at Left-***
+                rval = float(dict_whole.get('Right-Thalamus-Proper', "0.0"))  # Match at Right-***
                 rowData.append("{:0.2f}".format(lval + rval))
             elif d == "Vetrical_T":
                 # This exception adds up all ventricles and stores them under the mrs mis-spelling
-                ventricles = (float(wholedict.get('Left-Lateral-Ventricle', "0.0")) +
-                              float(wholedict.get('Left-Inf-Lat-Vent', "0.0")) +
-                              float(wholedict.get('3rd-Ventricle', "0.0")) +
-                              float(wholedict.get('4th-Ventricle', "0.0")) +
-                              float(wholedict.get('Right-Lateral-Ventricle', "0.0")) +
-                              float(wholedict.get('Right-Inf-Lat-Vent', "0.0")) +
-                              float(wholedict.get('5th-Ventricle', "0.0")))
+                ventricles = (float(dict_whole.get('Left-Lateral-Ventricle', "0.0")) +
+                              float(dict_whole.get('Left-Inf-Lat-Vent', "0.0")) +
+                              float(dict_whole.get('3rd-Ventricle', "0.0")) +
+                              float(dict_whole.get('4th-Ventricle', "0.0")) +
+                              float(dict_whole.get('Right-Lateral-Ventricle', "0.0")) +
+                              float(dict_whole.get('Right-Inf-Lat-Vent', "0.0")) +
+                              float(dict_whole.get('5th-Ventricle', "0.0")))
                 rowData.append("{:0.2f}".format(ventricles))
             elif d[-2:] == "_T":
                 # We have a "total" field, so we need to find the left and right fields to add for it
-                if wholedict.get(d[:-2] + '_L', "FAIL") == "FAIL":
-                    if wholedict.get('Left-' + d[:-2], "FAIL") == "FAIL":
-                        # print("--== ERROR: {4}-{0}: {1} but no {2} or {3}. Setting it to 0.0".format(n, d, d[:-2] + '_L', 'Left-' + d[:-2], subjectid))
+                if dict_whole.get(d[:-2] + '_L', "FAIL") == "FAIL":
+                    if dict_whole.get('Left-' + d[:-2], "FAIL") == "FAIL":
+                        # print("--== ERROR: {4}-{0}: {1} but no {2} or {3}. Setting it to 0.0".format(
+                        #     n, d, d[:-2] + '_L', 'Left-' + d[:-2], subjectid
+                        # ))
                         lval = 0.0  # No match, actual failure
                     else:
-                        lval = float(wholedict.get('Left-' + d[:-2], "0.0"))  # Match at Left-***
+                        lval = float(dict_whole.get('Left-' + d[:-2], "0.0"))  # Match at Left-***
                 else:
-                    lval = float(wholedict.get(d[:-2] + '_L', "0.0"))  # Match at ***_L
-                if wholedict.get(d[:-2] + '_R', "FAIL") == "FAIL":
-                    if wholedict.get('Right-' + d[:-2], "FAIL") == "FAIL":
-                        # print("--== ERROR: {4}-{0}: {1} but no {2} or {3}. Setting it to 0.0".format(n, d, d[:-2] + '_R', 'Right-' + d[:-2], subjectid))
+                    lval = float(dict_whole.get(d[:-2] + '_L', "0.0"))  # Match at ***_L
+                if dict_whole.get(d[:-2] + '_R', "FAIL") == "FAIL":
+                    if dict_whole.get('Right-' + d[:-2], "FAIL") == "FAIL":
+                        # print("--== ERROR: {4}-{0}: {1} but no {2} or {3}. Setting it to 0.0".format(
+                        #     n, d, d[:-2] + '_R', 'Right-' + d[:-2], subjectid
+                        # ))
                         rval = 0.0  # No match, actual failure
                     else:
-                        rval = float(wholedict.get('Right-' + d[:-2], "0.0"))  # Match at Right-***
+                        rval = float(dict_whole.get('Right-' + d[:-2], "0.0"))  # Match at Right-***
                 else:
-                    rval = float(wholedict.get(d[:-2] + '_R', "0.0"))  # Match at ***_R
+                    rval = float(dict_whole.get(d[:-2] + '_R', "0.0"))  # Match at ***_R
                 rowData.append("{:0.2f}".format(lval + rval))
             elif n[-3:] == "MRS":
                 rowData.append("NA")
@@ -244,30 +244,41 @@ def output_item(the_item):
         print("{sid} : {d}".format(sid=subjectid, d=the_item))
 
 
-##------------------------------------------------------------------------------
-##-- Define expected command-line arguments
-##------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# -- Define expected command-line arguments
+# ------------------------------------------------------------------------------
 
 
 # Parse command-line arguments
 argparser = argparse.ArgumentParser(description='Dig for information from FreeSurfer output')
-argparser.add_argument('rootfolder', help='Provide a subject\'s root FreeSurfer output folder.')
-argparser.add_argument('-s', '--sparse', action='store_true', help='Avoid printing the ID, keep it sparse.')
-argparser.add_argument('-v', '--version_short', action='store_true', help='Output the dot version of FreeSurfer used.')
-argparser.add_argument('-V', '--version_long', action='store_true', help='Output the full version of FreeSurfer used.')
+argparser.add_argument('rootfolder',
+                       help='Provide a subject\'s root FreeSurfer output folder.')
+argparser.add_argument('-s', '--sparse', action='store_true',
+                       help='Avoid printing the ID, keep it sparse.')
+argparser.add_argument('-v', '--version_short', action='store_true',
+                       help='Output the dot version of FreeSurfer used.')
+argparser.add_argument('-V', '--version_long', action='store_true',
+                       help='Output the full version of FreeSurfer used.')
 argparser.add_argument('-t', '--time_short', action='store_true',
                        help='Output the total elapsed time of the whole run.')
-argparser.add_argument('-T', '--time_long', action='store_true', help='Output the individual timings of each step.')
-argparser.add_argument('-u', '--username', action='store_true', help='Output the user account running freesurfer.')
-argparser.add_argument('-m', '--machine', action='store_true', help='Output the host on which this subject was run.')
-argparser.add_argument('-c', '--completion', action='store_true', help='Output success or failure of the job.')
+argparser.add_argument('-T', '--time_long', action='store_true',
+                       help='Output the individual timings of each step.')
+argparser.add_argument('-u', '--username', action='store_true',
+                       help='Output the user account running freesurfer.')
+argparser.add_argument('-m', '--machine', action='store_true',
+                       help='Output the host on which this subject was run.')
+argparser.add_argument('-c', '--completion', action='store_true',
+                       help='Output success or failure of the job.')
 argparser.add_argument('-d', '--completedate', action='store_true',
                        help='Output the date FreeSurfer completed its processing.')
 argparser.add_argument('-D', '--scandate', action='store_true',
                        help='Only works for GENOA naming of files, return date of MRI.')
-argparser.add_argument('-i', '--item', help='Output the item specified, looked up by FreeSurfer StructName.')
-argparser.add_argument('--filetype', help='aseg,aparc,wmparc,mrs or all , used with --outfile')
-argparser.add_argument('--outfile', help='Generate a csv file with the name specified, default is filetype=all.')
+argparser.add_argument('-i', '--item',
+                       help='Output the item specified, looked up by FreeSurfer StructName.')
+argparser.add_argument('--filetype',
+                       help='aseg,aparc,wmparc,mrs or all , used with --outfile')
+argparser.add_argument('--outfile',
+                       help='Generate a csv file with the name specified, default is filetype=all.')
 
 args = argparser.parse_args()
 
@@ -278,10 +289,9 @@ if not input_ok(subjectroot):
     # Errors will be printed from input_ok
     sys.exit()
 
-
-##------------------------------------------------------------------------------
-##-- Finally, with functions and arguments ready, do our thing...
-##------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# -- Finally, with functions and arguments ready, do our thing...
+# ------------------------------------------------------------------------------
 
 
 # Start by determining the subject ID
@@ -295,9 +305,9 @@ else:
 
 # Deal with versioning
 if args.version_short:
-    output_item(get_fsversion(subjectroot, verbosity="short"))
+    output_item(get_fs_version(subjectroot, verbosity="short"))
 elif args.version_long:
-    output_item(get_fsversion(subjectroot, verbosity="long"))
+    output_item(get_fs_version(subjectroot, verbosity="long"))
 
 # Deal with elapsed times
 if args.time_short:
@@ -349,15 +359,10 @@ if args.item:
 # Generate whole csvs with bunches of data
 if args.outfile:
     if args.filetype == "aseg" or args.filetype == "all":
-        write_fsfile(args.outfile, 'aseg', get_fsversion(subjectroot, verbosity="short"))
+        write_fsfile(args.outfile, 'aseg', get_fs_version(subjectroot, verbosity="short"))
     if args.filetype == "wmparc" or args.filetype == "all":
-        write_fsfile(args.outfile, 'wmparc', get_fsversion(subjectroot, verbosity="short"))
+        write_fsfile(args.outfile, 'wmparc', get_fs_version(subjectroot, verbosity="short"))
     if args.filetype == "aparc" or args.filetype == "all":
-        write_fsfile(args.outfile, 'aparc', get_fsversion(subjectroot, verbosity="short"))
+        write_fsfile(args.outfile, 'aparc', get_fs_version(subjectroot, verbosity="short"))
     if args.filetype == "mrs" or args.filetype == "all":
-        dict_whole = get_fs_data(subjectroot, 'aseg')
-        dict_whole.update(get_fs_data(subjectroot, 'wmparc'))
-        dict_whole.update(OrderedDict([(k + '_L', v) for k, v in get_fs_data(subjectroot, 'aparc1l').items()]))
-        dict_whole.update(OrderedDict([(k + '_R', v) for k, v in get_fs_data(subjectroot, 'aparc1r').items()]))
-        write_mrsfile(dict_whole, args.outfile)
-
+        write_mrsfile(args.outfile)
