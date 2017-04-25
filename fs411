@@ -118,7 +118,7 @@ def write_fsfile(outfilename, fstype, which_version="6.0.0"):
             try:
                 mydata.append((k, aseg_dict[k]))  # order from get_aseg_dict, data from get_fs_data
             except KeyError:
-                print("   keyerror, can't find {0} in {1}".format(k, fstype))
+                # print("   keyerror, can't find {0} in {1}".format(k, fstype))
                 mydata.append((k, "NA"))
     elif fstype == 'wmparc':
         wmparc_dict = get_fs_data(subjectroot, fstype)
@@ -127,7 +127,7 @@ def write_fsfile(outfilename, fstype, which_version="6.0.0"):
             try:
                 mydata.append((k, wmparc_dict[k]))  # order from get_wmparc_dict, data from get_fs_data
             except KeyError:
-                print("   keyerror, can't find {0} in {1}".format(k, fstype))
+                # print("   keyerror, can't find {0} in {1}".format(k, fstype))
                 mydata.append((k, "NA"))
     elif fstype == 'aparc':
         aparc_dict_l = get_fs_data(subjectroot, 'aparc1l')

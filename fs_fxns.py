@@ -201,7 +201,7 @@ def fs_join_aparc_dicts(left_dict, right_dict, which_version="6.0.0"):
     for k, v in get_aparc_dict(which_version).items():
         if k in get_shared_aparc_items():
             # duplicated items are only stored once
-            print("Found {0} as joint item.".format(k))
+            # print("Found {0} as joint item.".format(k))
             if left_dict[k] == right_dict[k]:
                 ambi_dict[k] = left_dict[k]
             else:
@@ -210,16 +210,16 @@ def fs_join_aparc_dicts(left_dict, right_dict, which_version="6.0.0"):
                 ))
         else:
             # items with one for left and one for right are each stored independently
-            print("Found {0} as independent aparc item".format(k))
+            # print("Found {0} as independent aparc item".format(k))
             try:
                 ambi_dict[k + '_L'] = left_dict[k]
             except KeyError:
-                print("   keyerror, can't find {0} in lh {1}".format(k, 'aparc'))
+                # print("   keyerror, can't find {0} in lh {1}".format(k, 'aparc'))
                 ambi_dict[k + '_L'] = "NA"
             try:
                 ambi_dict[k + '_R'] = right_dict[k]
             except KeyError:
-                print("   keyerror, can't find {0} in rh {1}".format(k, 'aparc'))
+                # print("   keyerror, can't find {0} in rh {1}".format(k, 'aparc'))
                 ambi_dict[k + '_R'] = "NA"
 
     return ambi_dict
