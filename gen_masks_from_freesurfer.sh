@@ -57,6 +57,7 @@ mri_convert \
 	"${INPUTDIR}/mri/aseg.mgz" \
 	"${OUTPUTDIR}/${SID}.aseg.${FSV}.img"
 
+# Also generate masks of hippocampal subfields if they are available.
 if [ -f "${INPUTDIR}/mri/lh.hippoSfLabels-T1.v10.FSvoxelSpace.mgz" ]; then
     mri_convert \
     	--in_type mgz \
@@ -64,7 +65,6 @@ if [ -f "${INPUTDIR}/mri/lh.hippoSfLabels-T1.v10.FSvoxelSpace.mgz" ]; then
     	"${INPUTDIR}/mri/lh.hippoSfLabels-T1.v10.FSvoxelSpace.mgz" \
     	"${OUTPUTDIR}/${SID}.lhsubs.${FSV}.img"
 fi
-
 if [ -f "${INPUTDIR}/mri/rh.hippoSfLabels-T1.v10.FSvoxelSpace.mgz" ]; then
     mri_convert \
     	--in_type mgz \
