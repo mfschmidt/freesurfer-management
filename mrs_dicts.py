@@ -417,6 +417,27 @@ def get_shared_aparc_items():
             ]
 
 
+# Map from FreeSurfer's lh.hippoSfVolumes-T1.v10.txt file to mrs variable
+def get_hsegs_dict(which_version):
+    default_dict = OrderedDict([
+        ('Hippocampal_tail', 'mrs'),
+        ('subiculum', 'mrs'),
+        ('CA1', 'mrs'),
+        ('hippocampal-fissure', 'mrs'),
+        ('presubiculum', 'mrs'),
+        ('parasubiculum', 'mrs'),
+        ('molecular_layer_HP', 'mrs'),
+        ('GC-ML-DG', 'mrs'),
+        ('CA3', 'mrs'),
+        ('CA4', 'mrs'),
+        ('fimbria', 'mrs'),
+        ('HATA', 'mrs'),
+        ('Whole_hippocampus', 'mrs'),
+    ])
+    return default_dict
+
+
+
 # Extract dictionary of metadata
 def get_mrs_meta_dict(subjectid, scandate, fstime):
     return OrderedDict([
