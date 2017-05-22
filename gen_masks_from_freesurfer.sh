@@ -57,6 +57,22 @@ mri_convert \
 	"${INPUTDIR}/mri/aseg.mgz" \
 	"${OUTPUTDIR}/${SID}.aseg.${FSV}.img"
 
+if [ -f "${INPUTDIR}/mri/lh.hippoSfLabels-T1.v10.FSvoxelSpace.mgz" ]; then
+    mri_convert \
+    	--in_type mgz \
+    	--out_type nifti1 --out_orientation LPI -odt uchar \
+    	"${INPUTDIR}/mri/lh.hippoSfLabels-T1.v10.FSvoxelSpace.mgz" \
+    	"${OUTPUTDIR}/${SID}.lhsubs.${FSV}.img"
+fi
+
+if [ -f "${INPUTDIR}/mri/rh.hippoSfLabels-T1.v10.FSvoxelSpace.mgz" ]; then
+    mri_convert \
+    	--in_type mgz \
+    	--out_type nifti1 --out_orientation LPI -odt uchar \
+    	"${INPUTDIR}/mri/rh.hippoSfLabels-T1.v10.FSvoxelSpace.mgz" \
+    	"${OUTPUTDIR}/${SID}.rhsubs.${FSV}.img"
+fi
+
 # no longer necessary, covered by mri_convert in one step
 #nifti_tool -copy_im \
 #	-prefix "${OUTPUTDIR}/${SID}.aseg.${FSV}.hdr" \
