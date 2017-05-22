@@ -28,6 +28,8 @@ def fs_file(which_file):
         ('aparc2r', '/stats/rh.aparc.a2009s.stats'),
         ('aparc3l', '/stats/lh.aparc.DKTatlas40.stats'),
         ('aparc3r', '/stats/rh.aparc.DKTatlas40.stats'),
+        ('hsegsl', '/mri/lh.hippoSfVolumes-T1.v10.txt'),
+        ('hsegsr', '/mri/rh.hippoSfVolumes-T1.v10.txt'),
         ('err', '/scripts/recon-all.error'),
         ('done', '/scripts/recon-all.done'),
     ])
@@ -177,6 +179,26 @@ def get_fs_data(subject_root, stats_file):
         print("Cannot find file {0}.".format(subject_root + fs_file(stats_file)))
     return my_dict
 
+# Retrieve data from FreeSurfer hippocampal subsegmentation file
+def get_hsegs_data(subject_root, stats_file):
+    my_dict = OrderedDict()
+    # These files are much simpler than stats files; just "varname value"
+    re_val = re.compile(r'^(?P<Name>[\w_\-]+)\s+(?P<Volume>[\d\.]+).+')
+    if os.path.isfile(subject_root + fs_file(stats_file)):
+        f = open(subject_root + fs_file(stats_file))
+        for line in f:
+            mat_measure_val = re_val.match(line)
+            if mat_measure_val:
+                # print("VAL: {Name}={Volume}".format(
+                #     Name=mat_measure_val.group('Name'),
+                #     Volume = mat_measure_val.group('Volume')
+                # ))
+                my_dict[mat_measure_val.group('Name')] = mat_measure_val.group('Volume')
+        f.close()
+    else:
+        print("Cannot find file {0}.".format(subject_root + fs_file(stats_file)))
+    return my_dict
+
 
 # Extract a volume or area
 def get_fs_item(subject_root, which_item=""):
@@ -225,5 +247,25 @@ def fs_join_aparc_dicts(left_dict, right_dict, which_version="6.0.0"):
             except KeyError:
                 # print("   keyerror, can't find {0} in rh {1}".format(k, 'aparc'))
                 ambi_dict[k + '_R'] = "NA"
+
+    return ambi_dict
+
+# Join left and right hsegs data without duplicating shared fields
+def fs_join_hsegs_dicts(left_dict, right_dict, which_version="6.0.0"):
+    ambi_dict = OrderedDict()
+    # Use the ordered clean index dictionary as an index, pull data from arguments
+    for k, v in get_hsegs_dict(which_version).items():
+        # items with one for left and one for right are each stored independently
+        # print("Found {0} as independent hsegs item".format(k))
+        try:
+            ambi_dict[k + '_L'] = left_dict[k]
+        except KeyError:
+            # print("   keyerror, can't find {0} in lh {1}".format(k, 'hsegs'))
+            ambi_dict[k + '_L'] = "NA"
+        try:
+            ambi_dict[k + '_R'] = right_dict[k]
+        except KeyError:
+            # print("   keyerror, can't find {0} in rh {1}".format(k, 'hsegs'))
+            ambi_dict[k + '_R'] = "NA"
 
     return ambi_dict
