@@ -70,36 +70,17 @@ b_l = b_data==b_L_hc ;
 b_r = b_data==b_R_hc ;
 
 ## Multiply each overlapping voxel (marked by a 1) by a bitmask value.
-data = 8*b_r + 4*b_l + 2*a_r + a_l ;
+data = int8(8*b_r + 4*b_l + 2*a_r + a_l) ;
 
-mask_filename = sprintf("%s_octave_masks.mat.gz", s_id) ;
+mask_filename = sprintf("%s_octave_masks.img.gz", s_id) ;
 save("-z", "-binary", mask_filename, "data") ;
 
-clear data
-close all
+#clear data
+#close all
 
-load(mask_filename) ;
+#load(mask_filename) ;
 
-## Originally, we output a 2 row, 3 column table, but no more
-
-#table = zeros(2,4) ;
-                                 ## Right:
-#table(1,1) = nnz(data == 8+2) ;  ## Both masks label it HC
-#table(1,2) = nnz(data ==   2) ;  ## Only a labels it HC
-#table(2,1) = nnz(data == 8  ) ;  ## Only b labels it HC
-                                 ## Left:
-#table(1,3) = nnz(data == 4+1) ;  ## Both masks label it HC
-#table(1,4) = nnz(data ==   1) ;  ## Only a labels it HC
-#table(2,3) = nnz(data == 4  ) ;  ## Only b labels it HC
-
-#result_filename = sprintf("%s.crosstab.txt", s_id) ;
-#f = fopen(result_filename, "w") ;
-#fprintf(f, "%d\t%d\t%d\t%d\n", table) ;
-#fflush(f) ;
-#fclose(f) ;
-
-## A wide-format one-row table is easier to aggregate
-
+## A wide-format one-row table is easy to aggregate
 histotable = zeros(1,6) ;
 histotable(1,1) = nnz(data == 1) ; ## L: a only
 histotable(1,2) = nnz(data == 4) ; ## L: b only
