@@ -137,6 +137,14 @@ def write_fsfile(outfilename, fstype, which_version="6.0.0"):
         aparc_dict = fs_join_aparc_dicts(aparc_dict_l, aparc_dict_r, which_version)
         for k, v in aparc_dict.items():
             mydata.append((k, v))
+    elif fstype == 'hsegs':
+        hsegs_dict_l = get_hsegs_data(subjectroot, 'hsegsl')
+        # OrderedDict([(k + '_L', v) for k, v in get_fs_data(subjectroot, 'hsegsl').items()])
+        hsegs_dict_r = get_hsegs_data(subjectroot, 'hsegsr')
+        # OrderedDict([(k + '_R', v) for k, v in get_fs_data(subjectroot, 'hsegsr').items()]))
+        hsegs_dict = fs_join_hsegs_dicts(hsegs_dict_l, hsegs_dict_r, which_version)
+        for k, v in hsegs_dict.items():
+            mydata.append((k, v))
 
     for i in mydata:
         rownames.append(i[0])
@@ -276,7 +284,7 @@ argparser.add_argument('-D', '--scandate', action='store_true',
 argparser.add_argument('-i', '--item',
                        help='Output the item specified, looked up by FreeSurfer StructName.')
 argparser.add_argument('--filetype',
-                       help='aseg,aparc,wmparc,mrs or all , used with --outfile')
+                       help='aseg,aparc,wmparc,hsegs,mrs or all , used with --outfile')
 argparser.add_argument('--outfile',
                        help='Generate a csv file with the name specified, default is filetype=all.')
 
@@ -364,5 +372,7 @@ if args.outfile:
         write_fsfile(args.outfile, 'wmparc', get_fs_version(subjectroot, verbosity="short"))
     if args.filetype == "aparc" or args.filetype == "all":
         write_fsfile(args.outfile, 'aparc', get_fs_version(subjectroot, verbosity="short"))
+    if args.filetype == "hsegs" or args.filetype == "all":
+        write_fsfile(args.outfile, 'hsegs', get_fs_version(subjectroot, verbosity="short"))
     if args.filetype == "mrs" or args.filetype == "all":
         write_mrsfile(args.outfile)
