@@ -43,8 +43,17 @@ elif [ -d "$1" ]; then
 	INDIR="${1%/}"
 	SID="${INDIR##*/}"
 else
-	echo "$1 is neither a file nor a directory. I assume it is the subject ID."
-	SID="$1"
+	if [ "$1" == "" ]; then
+		echo "Usage:"
+		echo "    $ compare_segs_for_subject.sh [-f][-v] /path/to/tracings [/path/for/output]"
+		echo "    -f forces overwrite of existing data"
+		echo "    -v increases verbosity"
+		echo "    The default output directory is /mri/gmbi.rochester.comparisons/\$subjectid"
+		exit 1
+	else
+		echo "$1 is neither a file nor a directory. I assume it is the subject ID."
+		SID="$1"
+	fi
 fi
 
 # Second, determine where to put our masks and results
@@ -71,7 +80,7 @@ if [ ! -d $OUTDIR ]; then
 fi
 
 # Report our interpretation of inputs for debugging, if necessary
-if [ $VERBOSE ]; then
+if [ "$VERBOSE" -ne "0" ]; then
 	echo "In      : $1"
 	echo "SID     : $SID"
 	echo "INDIR   : $INDIR"
@@ -96,7 +105,7 @@ cd "$OUTDIR"
 # FreeSurfer must come before manual tracing because the manual tracing
 # is saved as a mask in FreeSurfer coordinates, derived from this snippet's
 # output.
-if [ $VERBOSE ]; then echo ">>>=== $SID --- FreeSurfer segmentations"; fi
+if [ "$VERBOSE" -ne "0" ]; then echo ">>>=== $SID --- FreeSurfer segmentations"; fi
 F_CANDIDATES=$(2>/dev/null find $F_LOCI -type d -name $SID)
 for C in $F_CANDIDATES; do
 	if [ "$(dir_contents.sh $C)" == "freesurfer" ]; then
@@ -197,7 +206,7 @@ while read comp; do
 	done <"${OUTDIR}/${SID}.comparisons.csv"
 	if [ "$MATCH" == "false" ]; then
 	    # Only output the record to the actual file if it is not a duplicate.
-	    echo "${A[0]},${A[1]%%-*},${A[2]%%-*},${A[3]},${A[4]},${A[5]},${A[6]},${A[7]},${A[8]}" >> "$OUTFILE"
+	    echo "${A[0]},${A[1]%%-*},${A[2]%%-*},${A[3]},${A[4]},${A[5]},${A[6]},${A[7]},${A[8]}" >> "${OUTDIR}/${SID}.comparisons.csv"
 	fi
 done <"${OUTDIR}/tmp.${SID}.comparisons.csv"
 rm "${OUTDIR}/tmp.${SID}.comparisons.csv"
