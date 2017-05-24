@@ -8,6 +8,7 @@
 # Parse command-line options
 VERBOSE=0
 FORCE=0
+EXCLUDE=0
 while getopts ":f:v:" opt; do
 	case $opt in
 		f)
@@ -17,6 +18,11 @@ while getopts ":f:v:" opt; do
 		v)
 			# echo anything relevant
 			VERBOSE=1
+			;;
+		e)
+			# exclude known problematic scans
+			EXCLUDE=1
+			exclusions=$(ls -1 /mri/gmbi.rochester.meta/gmbi.roch*[fail,prob]*.ids)
 			;;
 		\?)
 			echo "Invalid option: -$OPTARG" >&2
@@ -54,6 +60,18 @@ else
 		echo "$1 is neither a file nor a directory. I assume it is the subject ID."
 		SID="$1"
 	fi
+fi
+
+# Quit early if we're wasting our time
+if [ "$EXCLUDE" -ne "0" ]; then
+	for f in $exclusions; do
+		while read fl; do 
+			if [ "$fl" == "$SID" ]; then
+				echo "$SID is excluded by $f. Exiting"
+				exit 0
+			fi
+		done <$f
+	done
 fi
 
 # Second, determine where to put our masks and results
@@ -110,6 +128,7 @@ F_CANDIDATES=$(2>/dev/null find $F_LOCI -type d -name $SID)
 for C in $F_CANDIDATES; do
 	if [ "$(dir_contents.sh $C)" == "freesurfer" ]; then
 		echo "Got FreeSurfer segmentation at $C"
+		V=$(fs411 -vs $C)
 		gen_masks_from_freesurfer.sh $C $OUTDIR
 	fi
 done
@@ -136,12 +155,12 @@ fi
 
 # 5. Compare all masks to each other
 if [ $VERBOSE ]; then echo ">>>=== $SID --- comparisons"; fi
-for T1 in $(ls -1 ${OUTDIR}/${SID}.mask*.img); do
-	if [ $VERBOSE ]; then echo ">>>===    $SID --- candidate $T1"; fi
+for T1 in $(2>/dev/null ls -1 ${OUTDIR}/${SID}.mask*.img); do
+	if [ $VERBOSE ]; then echo ">>>===   $SID --- candidate $T1"; fi
 	if [[ "$T1" =~ ^(.*)\.mask\.(.*)_(.*)\.img$ ]]; then
 		tr1=${BASH_REMATCH[2]}
 		v1=${BASH_REMATCH[3]}
-		for T2 in $(ls -1 ${OUTDIR}/${SID}.mask.*_${v1}.img); do
+		for T2 in $(2>/dev/null ls -1 ${OUTDIR}/${SID}.mask.*_${v1}.img); do
 			if [ $VERBOSE ]; then echo ">>>===    $SID --- candidate $T1 vs $T2"; fi
 			if [ "$T1" != "$T2" ]; then
 				if [[ "$T2" =~ ^(.*)\.mask\.(.*)_(.*)\.img$ ]]; then
@@ -155,7 +174,7 @@ for T1 in $(ls -1 ${OUTDIR}/${SID}.mask*.img); do
 	else
 		echo "No regex match for $T1"
 	fi
-	for F2 in $(ls -1 ${OUTDIR}/${SID}.aseg.${v1}.img); do
+	for F2 in $(2>/dev/null ls -1 ${OUTDIR}/${SID}.aseg.${v1}.img); do
 		if [ $VERBOSE ]; then echo ">>>===    $SID --- candidate $T1 vs $F2"; fi
 		if [[ "$F2" =~ ^(.*)\.aseg\.(.*)\.img$ ]]; then
 			v2=${BASH_REMATCH[2]}
@@ -164,9 +183,18 @@ for T1 in $(ls -1 ${OUTDIR}/${SID}.mask*.img); do
 			echo "No regex match for $F2"
 		fi
 	done
+	for F2 in $(2>/dev/null ls -1 ${OUTDIR}/${SID}.subf*.${v1}.img); do
+		if [ $VERBOSE ]; then echo ">>>===    $SID --- candidate $T1 vs $F2"; fi
+		if [[ "$F2" =~ ^(.*)\.(subf.*)\.(.*)\.img$ ]]; then
+			v2=${BASH_REMATCH[3]}${BASH_REMATCH[2]}
+			1>/dev/null summarize_overlap.m "$T1" "$F2" "${SID}.comp.${tr1}.${v2}"
+		else
+			echo "No regex match for $F2"
+		fi
+	done
 done
-for F1 in $(ls -1 ${OUTDIR}/${SID}.aseg.*.img); do
-	for F2 in $(ls -1 ${OUTDIR}/${SID}.aseg.*.img); do
+for F1 in $(2>/dev/null ls -1 ${OUTDIR}/${SID}.aseg.*.img); do
+	for F2 in $(2>/dev/null ls -1 ${OUTDIR}/${SID}.aseg.*.img); do
 		if [ $VERBOSE ]; then echo ">>>===    $SID --- candidate $F1 vs $F2"; fi
 		if [[ "$F1" =~ ^(.*)\.aseg\.(.*)\.img$ ]]; then
 			v1=${BASH_REMATCH[2]}
@@ -176,6 +204,15 @@ for F1 in $(ls -1 ${OUTDIR}/${SID}.aseg.*.img); do
 		fi
 		if [ "$F1" != "$F2" ]; then
 			1>/dev/null summarize_overlap.m "$F1" "$F2" "${SID}.comp.${v1}.${v2}"
+		fi
+	done
+	for F2 in $(2>/dev/null ls -1 ${OUTDIR}/${SID}.subf*.${v1}.img); do
+		if [ $VERBOSE ]; then echo ">>>===    $SID --- candidate $F1 vs $F2"; fi
+		if [[ "$F2" =~ ^(.*)\.(subf.*)\.(.*)\.img$ ]]; then
+			v2=${BASH_REMATCH[3]}${BASH_REMATCH[2]}
+			1>/dev/null summarize_overlap.m "$F1" "$F2" "${SID}.comp.${v1}.${v2}"
+		else
+			echo "No regex match for $F2"
 		fi
 	done
 done

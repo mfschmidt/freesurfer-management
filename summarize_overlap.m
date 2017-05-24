@@ -26,6 +26,10 @@ if (strfind(file_a, "aseg"))
 	fprintf("%s is a FreeSurfer mask.\n", file_a) ;
 	a_L_hc = fs_l ;
 	a_R_hc = fs_r ;
+elseif (strfind(file_a, "subf"))
+	fprintf("%s is a FreeSurfer subfields mask.\n", file_a) ;
+	a_L_hc = fs_l ;
+	a_R_hc = fs_r ;
 elseif (strfind(file_a, "mask"))
 	fprintf("%s is a manual trace mask.\n", file_a) ;
 	a_L_hc = tr_l ;
@@ -37,6 +41,10 @@ endif
 
 if (strfind(file_b, "aseg"))
 	fprintf("%s is a FreeSurfer mask.\n", file_b) ;
+	b_L_hc = fs_l ;
+	b_R_hc = fs_r ;
+elseif (strfind(file_b, "subf"))
+	fprintf("%s is a FreeSurfer subfields mask.\n", file_b) ;
 	b_L_hc = fs_l ;
 	b_R_hc = fs_r ;
 elseif (strfind(file_b, "mask"))
@@ -72,8 +80,8 @@ b_r = b_data==b_R_hc ;
 ## Multiply each overlapping voxel (marked by a 1) by a bitmask value.
 data = int8(8*b_r + 4*b_l + 2*a_r + a_l) ;
 
-mask_filename = sprintf("%s_octave_masks.img.gz", s_id) ;
-save("-z", "-binary", mask_filename, "data") ;
+#mask_filename = sprintf("%s_octave_masks.img.gz", s_id) ;
+#save("-z", "-binary", mask_filename, "data") ;
 
 #clear data
 #close all
