@@ -63,14 +63,23 @@ if [ -f "${INPUTDIR}/mri/lh.hippoSfLabels-T1.v10.FSvoxelSpace.mgz" ]; then
     	--in_type mgz \
     	--out_type nifti1 --out_orientation LPI -odt uchar \
     	"${INPUTDIR}/mri/lh.hippoSfLabels-T1.v10.FSvoxelSpace.mgz" \
-    	"${OUTPUTDIR}/${SID}.lhsubs.${FSV}.img"
+    	"${OUTPUTDIR}/${SID}.aseg_lhsubs.${FSV}.img"
 fi
 if [ -f "${INPUTDIR}/mri/rh.hippoSfLabels-T1.v10.FSvoxelSpace.mgz" ]; then
     mri_convert \
     	--in_type mgz \
     	--out_type nifti1 --out_orientation LPI -odt uchar \
     	"${INPUTDIR}/mri/rh.hippoSfLabels-T1.v10.FSvoxelSpace.mgz" \
-    	"${OUTPUTDIR}/${SID}.rhsubs.${FSV}.img"
+    	"${OUTPUTDIR}/${SID}.aseg_rhsubs.${FSV}.img"
+fi
+
+if [ -f "${OUTPUTDIR}/${SID}.aseg_lhsubs.${FSV}.img" ]; then
+	if [ -f "${OUTPUTDIR}/${SID}.aseg_rhsubs.${FSV}.img" ]; then
+		convert_hsubs_to_aseg.m \
+			"${OUTPUTDIR}/${SID}.aseg_lhsubs.${FSV}.img" \
+			"${OUTPUTDIR}/${SID}.aseg_rhsubs.${FSV}.img" \
+			"${OUTPUTDIR}/${SID}.subf.${FSV}.img"
+	fi
 fi
 
 # no longer necessary, covered by mri_convert in one step
