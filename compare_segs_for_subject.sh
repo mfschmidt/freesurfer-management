@@ -164,6 +164,15 @@ for T1 in $(ls -1 ${OUTDIR}/${SID}.mask*.img); do
 			echo "No regex match for $F2"
 		fi
 	done
+	for F2 in $(ls -1 ${OUTDIR}/${SID}.aseg.${v1}.img); do
+		if [ $VERBOSE ]; then echo ">>>===    $SID --- candidate $T1 vs $F2"; fi
+		if [[ "$F2" =~ ^(.*)\.aseg\.(.*)\.img$ ]]; then
+			v2=${BASH_REMATCH[2]}
+			1>/dev/null summarize_overlap.m "$T1" "$F2" "${SID}.comp.${tr1}.${v2}"
+		else
+			echo "No regex match for $F2"
+		fi
+	done
 done
 for F1 in $(ls -1 ${OUTDIR}/${SID}.aseg.*.img); do
 	for F2 in $(ls -1 ${OUTDIR}/${SID}.aseg.*.img); do
