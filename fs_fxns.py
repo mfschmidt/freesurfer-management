@@ -3,7 +3,7 @@
 from collections import OrderedDict
 
 import os
-import datetime
+from datetime import datetime, timezone
 from dateutil.tz import gettz
 from dateutil import parser
 import re  # Regular expression support
@@ -62,24 +62,65 @@ def get_fs_version(subject_root, verbosity="short"):
 
 # Extract the elapsed time
 def get_fs_time(subject_root, verbosity="short", timetype="elapsed", sparsity=False):
-    cmdfile = subject_root + fs_file('cmd')
-    if not os.path.isfile(cmdfile):
-        return "N/A"
     timestrings = []
+    need_start = True
     # tfstring="%a %b %d %X %Z %Y"
-    first_time = datetime.datetime.now()
-    last_time = datetime.datetime.now()
-    this_time = datetime.datetime.now()
+    
+    # Get the overall start and end times
+    if not os.path.isfile(subject_root + fs_file('log')): return "N/A"
+    first_time_str = ""
+    first_time = datetime.now(timezone.utc)
+    final_time_str = ""
+    final_time = datetime.now(timezone.utc)
+    reg_old_start_log = re.compile(r'^(?P<stmp>\w{3}\s+\w+\s+\d+\s+\d\d:\d\d:\d\d\s+\w{3}\s+\d{4})')
+    reg_new_start_log = re.compile(r'^Started\s+at\s+(?P<stmp>\w{3}\s+\w+\s+\d+\s+\d\d:\d\d:\d\d\s+\w{3}\s+\d{4})')
+    reg_old_end_log = re.compile(r'^.*finished\s+.*at\s+(?P<stmp>\w{3}\s+\w+\s+\d+\s+\d\d:\d\d:\d\d\s+\w{3}\s+\d{4})')
+    reg_new_end_log = re.compile(r'^Ended\s+at\s+(?P<stmp>\w{3}\s+\w+\s+\d+\s+\d\d:\d\d:\d\d\s+\w{3}\s+\d{4})')
+    f = open(subject_root + fs_file('log'))
+    for line in f:
+        # several "Started at" lines exist; we keep the first one via the need_start flag, or overwrite with explicit start lines.
+        #     in other words, in the old pre-530 format we keep the first, later, we'll overwrite constantly
+        # several "Ended at" lines exist; we just overwrite to end up with the last one.
+        # Different FreeSurfer versions also changed these so we need to check several formats
+        mat_old_started = reg_old_start_log.match(line)
+        mat_new_started = reg_new_start_log.match(line)
+        mat_old_ended = reg_old_end_log.match(line)
+        mat_new_ended = reg_new_end_log.match(line)
+        if mat_old_started and need_start:
+            first_time_str = mat_old_started.group('stmp')
+            first_time = parser.parse(first_time_str, tzinfos=tzinfos)
+            need_start = False
+        if mat_new_started:
+            first_time_str = mat_new_started.group('stmp')
+            first_time = parser.parse(first_time_str, tzinfos=tzinfos)
+            need_start = False
+        if mat_old_ended:
+            final_time_str = mat_old_ended.group('stmp')
+            final_time = parser.parse(final_time_str, tzinfos=tzinfos)
+        if mat_new_ended:
+            final_time_str = mat_new_ended.group('stmp')
+            final_time = parser.parse(final_time_str, tzinfos=tzinfos)
+    f.close()
+    if verbosity == "long":
+        if sparsity:
+            timestrings.append("{:2} : {:5.0f}\n".format(0,0))
+        else:
+            timestrings.append("{:2} : {:28} : {} ({:5.0f}, {:5.0f})\n".format(0,'Start',first_time_str,0,0))
+    
+    # Go through cmd file and parse datestamps from each segment
+    if not os.path.isfile(subject_root + fs_file('cmd')): return "N/A"
+    last_time = datetime.now(timezone.utc)
+    this_time = datetime.now(timezone.utc)
     td_large = this_time - first_time
     td_small = this_time - first_time
-    reg_tstamp = re.compile(r'^#@# (?P<task>.*) (?P<stmp>\w{3}\s+\w+\s+\d+\s+\d\d:\d\d:\d\d\s+\w{3}\s+\d{4})')
-    f = open(cmdfile)
+    reg_tstamp_cmd = re.compile(r'^#@# (?P<task>.*) (?P<stmp>\w{3}\s+\w+\s+\d+\s+\d\d:\d\d:\d\d\s+\w{3}\s+\d{4})')
+    f = open(subject_root + fs_file('cmd'))
     n = 0
     for line in f:
-        mat_tstamp = reg_tstamp.match(line)
+        mat_tstamp = reg_tstamp_cmd.match(line)
         if mat_tstamp:
             if n == 0:
-                first_time = parser.parse(mat_tstamp.group('stmp'), tzinfos=tzinfos)
+                # first_time = parser.parse(mat_tstamp.group('stmp'), tzinfos=tzinfos)
                 last_time = first_time
             n += 1
             this_time = parser.parse(mat_tstamp.group('stmp'), tzinfos=tzinfos)
@@ -97,15 +138,25 @@ def get_fs_time(subject_root, verbosity="short", timetype="elapsed", sparsity=Fa
                     ))
             last_time = this_time
     f.close()
+    
+    # Join start and end times to list of all segment times
+    if verbosity == "long":
+        if sparsity:
+            timestrings.append("{:2} : {:5.0f}\n".format(
+                n+1, (final_time - first_time).total_seconds() ))
+        else:
+            timestrings.append("{:2} : {:28} : {} ({:5.0f}, {:5.0f})\n".format(
+                n+1, 'Ended', final_time_str,
+                (final_time - last_time).total_seconds(),
+                (final_time - first_time).total_seconds() ))            
     if verbosity == "short":
         if sparsity:
             timestrings.append("{:5.0f}".format(
-                td_large.total_seconds()
-            ))
+                (final_time - first_time).total_seconds() ))
         else:
             timestrings.append("{:5.0f} seconds ({:2.1f} hrs)".format(
-                td_large.total_seconds(), td_large.total_seconds() / 3600.0
-            ))
+                (final_time - first_time).total_seconds(),
+                (final_time - first_time).total_seconds() / 3600.0 ))
     if timetype == "elapsed":
         return ''.join(timestrings)
     if timetype == "begin":

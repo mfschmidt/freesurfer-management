@@ -9,11 +9,9 @@ import sys  # To get command-line arguments
 import argparse  # A framework for parsing command-line arguments
 import os  # For digging through directories and files
 import re  # Regular expression support
-import datetime  # To handle dates and times
+from datetime import date, timedelta, datetime  # To handle dates and times
 import csv  # To write the final csv mrs file easily
 from collections import OrderedDict  # for named dictionaries of volumes and such
-from datetime import date
-from datetime import timedelta
 import time
 import glob  # for searching for original spgr files, fullname unknown
 
@@ -27,7 +25,7 @@ from fs_fxns import *
 TS_Format = "%a %b %d %H:%M:%S %Z %Y"
 
 subjectid = ""
-ts_begin = datetime.datetime(1975, 3, 11, 0, 0, 0)
+ts_begin = datetime(1975, 3, 11, 0, 0, 0)
 ts_end = ts_begin
 StartedOver = ' '
 left_hcv = ''
@@ -245,11 +243,12 @@ def write_mrsfile(csvmrsfile):
 
 
 # Print data differently depending on sparsity and verbosity
-def output_item(the_item):
+def output_item(the_item, multiline=False):
     if args.sparse:
         print(the_item)
     else:
-        print("{sid} : {d}".format(sid=subjectid, d=the_item))
+        divider = "\n" if multiline else " : "
+        print("{sid}{div}{d}".format(sid=subjectid, d=the_item, div=divider))
 
 
 # ------------------------------------------------------------------------------
@@ -321,7 +320,8 @@ elif args.version_long:
 if args.time_short:
     output_item(get_fs_time(subjectroot, verbosity="short", timetype="elapsed", sparsity=False))
 elif args.time_long:
-    output_item(get_fs_time(subjectroot, verbosity="long", timetype="elapsed", sparsity=False))
+    output_item(get_fs_time(subjectroot, verbosity="long", timetype="elapsed", sparsity=False),
+    multiline=True)
 
 # Determine the completion status
 if args.completion:
