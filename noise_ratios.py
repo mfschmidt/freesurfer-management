@@ -30,8 +30,8 @@ snr = {
 cnr = {
     "name" : "cnr", 
     "cmd" : "mri_cnr", 
-    "datafile" : "stats/wmcnr.t.dat", 
-    "logfile" : "scripts/wmcnr.t.log", 
+    "datafile" : "stats/wmcnr.dat", 
+    "logfile" : "scripts/wmcnr.log", 
     "data" : (), 
 }
 
@@ -93,11 +93,12 @@ def generate_ratio(d):
                     # Generate a log file
                     f = open(os.path.join(subject_root, d["logfile"]), "a")
                     f.write(" ".join(d["cmd"]))
-                    f.write(str(local_output.stdout))
+                    f.write(local_output.stdout.decode("utf-8"))
+                    f.write("Data written to ../{0}".format(d["datafile"]))
                     f.close()
                     # Generate the data file
                     f = open(os.path.join(subject_root, d["datafile"]), "w")
-                    f.write(str(local_output.stdout))
+                    f.write(local_output.stdout.decode("utf-8"))
                     f.close()
                 elif d["name"] == "snr":
                     # The SNR application generates its own data file and log file.
@@ -116,18 +117,55 @@ def generate_ratio(d):
 
 # Extract data
 def extract_cnr(d):
-    return (1.01, 1.02, 1.03, )
+    left_cnr = 0.0
+    right_cnr = 0.0
+    whole_cnr = 0.0
+    reg_data = re.compile(r'^(?P<side>\w+)\s+CNR\s+=\s+(?P<cnr>\d+\.\d+).*$')
+    f = open(os.path.join(subject_root, d["datafile"]), "r")
+    for line in f:
+        match = reg_data.match(line)
+        if match:
+            if match.group("side") == "lh":
+                left_cnr = match.group('cnr')
+            elif match.group("side") == "rh":
+                right_cnr = match.group("cnr")
+            elif match.group("side") == "total":
+                whole_cnr = match.group("cnr")
+    f.close()
+    d["data"] = (subject_id, whole_cnr, left_cnr, right_cnr, )
 
 
 def extract_snr(d):
-    return (20.00, )
+    reg_data = re.compile(r'^(?P<id>\w\d{6})\s+(?P<snr>\d+\.\d+)\s+(?P<a>\d+\.\d+)\s+(?P<b>\d+\.\d+)\s+\d+\s+\d+.*$')
+    f = open(os.path.join(subject_root, d["datafile"]), "r")
+    for line in f:
+        match_data = reg_data.match(line)
+        if match_data:
+            d["data"] = (match_data.group('id'), match_data.group('snr'), )
+    f.close()
 
 
-def output_ratios(sub_id, dcnr, dsnr):
-    print("ID,snr,whole_cnr,left_cnr,right_cnr")
-    print("{i},{s},{cw},{cl},{cr}".format(
-        i=sub_id, s=dsnr["data"][0],
-        cw=dcnr["data"][0], cl=dcnr["data"][1], cr=dcnr["data"][2]))
+def output_ratios(dcnr, dsnr):
+    if dcnr["data"][0] != dsnr["data"][0]:
+        print("CNR {0} does not match SNR {1}".format(dcnr["data"][0], dsnr["data"][0], ))
+        print("Something is quite wrong with  mismatched subject IDs. I'm giving up.")
+    else:
+        head_string = "ID,snr,whole_cnr,left_cnr,right_cnr"
+        data_string = "{i},{s},{cw},{cl},{cr}".format(
+            i=dcnr["data"][0], s=dsnr["data"][1],
+            cw=dcnr["data"][1], cl=dcnr["data"][2], cr=dcnr["data"][3])
+        if args.output:
+            if not os.path.isfile(args.output):
+                f = open(args.output, "w")
+                f.write(head_string)
+                f.write("\n")
+                f.close()
+            f = open(args.output, "a")
+            f.write(data_string)
+            f.write("\n")
+            f.close()
+        print(head_string)
+        print(data_string)
 
 
 # ------------------------------------------------------------------------------
@@ -140,8 +178,8 @@ generate_ratio(cnr)
 generate_ratio(snr)
 
 # Now extract the data
-cnr["data"] = extract_cnr(cnr)
-snr["data"] = extract_snr(snr)
+extract_cnr(cnr)
+extract_snr(snr)
 
 # And kick out the summary
-output_ratios(subject_id, cnr, snr)
+output_ratios(cnr, snr)
