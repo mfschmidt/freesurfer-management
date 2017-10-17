@@ -11,26 +11,29 @@ import os  # For digging through directories and files
 import shutil  # to find external applications
 import subprocess  # to execute external applications
 import re  # Regular expression support
-import datetime  # To handle dates and times
 import csv  # To write the final csv mrs file easily
-from collections import OrderedDict  # for named dictionaries of volumes and such
-from datetime import date
-from datetime import timedelta
-import time
-import glob  # for searching for original spgr files, fullname unknown
 
 
 # ------------------------------------------------------------------------------
 # -- Define constants and globals for later use
 # ------------------------------------------------------------------------------
-TS_Format = "%a %b %d %H:%M:%S %Z %Y"
 
 subject_root = ""
 
-snr_cmd = "wm-anat-snr"
-snr_output = "stats/tmp.wmsnr.e3.dat"
-cnr_cmd = "mri_cnr"
-cnr_output = "stats/tmp.wmcnr.dat"
+snr = {
+    "name" : "snr", 
+    "cmd" : "wm-anat-snr", 
+    "datafile" : "stats/wmsnr.e3.dat", 
+    "logfile" : "scripts/wmsnr.log", 
+    "data" : (), 
+}
+cnr = {
+    "name" : "cnr", 
+    "cmd" : "mri_cnr", 
+    "datafile" : "stats/wmcnr.t.dat", 
+    "logfile" : "scripts/wmcnr.t.log", 
+    "data" : (), 
+}
 
 # Parse command-line arguments
 # ------------------------------------------------------------------------------
@@ -66,6 +69,9 @@ else:
     sys.exit(0)
 subject_id = os.path.basename(subject_root)
 
+cnr["cmd"] = [cnr["cmd"], os.path.join(subject_root, "surf"), os.path.join(subject_root, "mri/orig.mgz"), ]
+snr["cmd"] = [snr["cmd"], "--s", subject_id, ]
+
 
 # ------------------------------------------------------------------------------
 # -- Define functions
@@ -73,43 +79,55 @@ subject_id = os.path.basename(subject_root)
 
 
 # Generate data, if necessary
-def generate_ratio(which_cmd, which_file):
-    if not os.path.isfile(os.path.join(subject_root, which_file)):
+def generate_ratio(d):
+    if not os.path.isfile(os.path.join(subject_root, d["datafile"])):
         if args.verbose:
-            print("{0} not found, making it...".format(os.path.join(subject_root, which_file)))
-        if shutil.which(which_cmd[0]):
-            local_output = subprocess.run(
-                which_cmd,
-                stdout=subprocess.PIPE, sterr=subprocess.PIPE)
-            if len(local_output.stdout) > 0 and len(local_output.stderr) == 0:
-                f = open(os.path.join(subject_root, which_file), "a")
-                f.write(local_output.stdout)
-                f.close()
+            print("{0} not found, making it...".format(os.path.join(subject_root, d["datafile"])))
+        if shutil.which(d["cmd"][0]):
+            local_output = subprocess.run(d["cmd"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if local_output.returncode == 0:
+                if args.verbose:
+                    print(local_output.stdout.decode("utf-8"))
+                    print(local_output.stderr.decode("utf-8"))
+                if d["name"] == "cnr":
+                    # Generate a log file
+                    f = open(os.path.join(subject_root, d["logfile"]), "a")
+                    f.write(" ".join(d["cmd"]))
+                    f.write(str(local_output.stdout))
+                    f.close()
+                    # Generate the data file
+                    f = open(os.path.join(subject_root, d["datafile"]), "w")
+                    f.write(str(local_output.stdout))
+                    f.close()
+                elif d["name"] == "snr":
+                    # The SNR application generates its own data file and log file.
+                    # Just running it does everything.
+                    pass
             else:
-                print("Warning: output not as expected:")
-                print("    stdout : {}".format(local_output.stdout))
-                print("    stderr : {}".format(local_output.stderr))
+                print("Warning: {0} returned an error.".format(d["cmd"][0]))
+                print("    stdout : {}".format(local_output.stdout.decode("utf-8")))
+                print("    stderr : {}".format(local_output.stderr.decode("utf-8")))
         else:
             print("No CNR data can be found at '{0}'.".format(
-                os.path.join(subject_root, "stats", "wmcnr.dat")))
+                os.path.join(subject_root, d[datafile])))
             print("No {0} available. Check your FREESURFER_HOME environment variable.".format(
-                cnr_cmd))
+                cnr["cmd"]))
 
 
 # Extract data
-def extract_cnr(cnr_path):
+def extract_cnr(d):
     return (1.01, 1.02, 1.03, )
 
 
-def extract_snr(snr_path):
+def extract_snr(d):
     return (20.00, )
 
 
-def output_ratios(sub_id, cnr_tuple, snr_tuple):
-    print("ID,snr,cnr,left_cnr,right_cnr")
-    print("{i},{s},{c},{cl},{cr}".format(
-        i=sub_id, s=snr_tuple[1],
-        c=cnr_tuple[1], cl=cnr_tuple[2], cr=cnr_tuple[3]))
+def output_ratios(sub_id, dcnr, dsnr):
+    print("ID,snr,whole_cnr,left_cnr,right_cnr")
+    print("{i},{s},{cw},{cl},{cr}".format(
+        i=sub_id, s=dsnr["data"][0],
+        cw=dcnr["data"][0], cl=dcnr["data"][1], cr=dcnr["data"][2]))
 
 
 # ------------------------------------------------------------------------------
@@ -118,17 +136,12 @@ def output_ratios(sub_id, cnr_tuple, snr_tuple):
 
 
 # If the CNR data are not already there, generate them
-generate_ratio(
-    [cnr_cmd, os.path.join(subject_root, "surf"), os.path.join(subject_root, "mri/orig.mgz"), ],
-    cnr_output)
-
-generate_ratio(
-    [snr_cmd, "--s", subject_id, ],
-    snr_output)
+generate_ratio(cnr)
+generate_ratio(snr)
 
 # Now extract the data
-my_cnr = extract_cnr(cnr_output)
-my_snr = extract_snr(snr_output)
+cnr["data"] = extract_cnr(cnr)
+snr["data"] = extract_snr(snr)
 
 # And kick out the summary
-output_ratios(subject_id, my_cnr, my_snr)
+output_ratios(subject_id, cnr, snr)
