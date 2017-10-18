@@ -116,41 +116,45 @@ def generate_ratio(d):
 
 # Extract data
 def extract_cnr(d):
-    left_cnr = 0.0
-    right_cnr = 0.0
-    whole_cnr = 0.0
-    reg_data = re.compile(r'^(?P<side>\w+)\s+CNR\s+=\s+(?P<cnr>\d+\.\d+).*$')
-    with open(os.path.join(subject_root, d["datafile"]), "r") as f:
-        for line in f:
-            match = reg_data.match(line)
-            if match:
-                if match.group("side") == "lh":
-                    left_cnr = match.group('cnr')
-                elif match.group("side") == "rh":
-                    right_cnr = match.group("cnr")
-                elif match.group("side") == "total":
-                    whole_cnr = match.group("cnr")
+    left_cnr = "N/A"
+    right_cnr = "N/A"
+    whole_cnr = "N/A"
+    if os.path.isfile(os.path.join(subject_root, d["datafile"])):
+        reg_data = re.compile(r'^(?P<side>\w+)\s+CNR\s+=\s+(?P<cnr>\d+\.\d+).*$')
+        with open(os.path.join(subject_root, d["datafile"]), "r") as f:
+            for line in f:
+                match = reg_data.match(line)
+                if match:
+                    if match.group("side") == "lh":
+                        left_cnr = match.group('cnr')
+                    elif match.group("side") == "rh":
+                        right_cnr = match.group("cnr")
+                    elif match.group("side") == "total":
+                        whole_cnr = match.group("cnr")
     d["data"] = (subject_id, whole_cnr, left_cnr, right_cnr, )
 
 
 def extract_snr(d):
-    reg_data = re.compile(r'^(?P<id>\w\d{6})\s+(?P<snr>\d+\.\d+)\s+(?P<a>\d+\.\d+)\s+(?P<b>\d+\.\d+)\s+\d+\s+\d+.*$')
-    with open(os.path.join(subject_root, d["datafile"]), "r") as f:
-        for line in f:
-            match_data = reg_data.match(line)
-            if match_data:
-                d["data"] = (match_data.group('id'), match_data.group('snr'), )
+    local_id = "X000000"
+    whole_snr = "N/A"
+    if os.path.isfile(os.path.join(subject_root, d["datafile"])):
+        reg_data = re.compile(r'^(?P<id>\w\d{6})\s+(?P<snr>\d+\.\d+)\s+(?P<a>\d+\.\d+)\s+(?P<b>\d+\.\d+)\s+\d+\s+\d+.*$')
+        with open(os.path.join(subject_root, d["datafile"]), "r") as f:
+            for line in f:
+                match = reg_data.match(line)
+                if match:
+                    local_id = match.group("id")
+                    whole_snr = match.group("snr")
+    d["data"] = (local_id, whole_snr, )
+
 
 
 def output_ratios(dcnr, dsnr):
-    if dcnr["data"][0] != dsnr["data"][0]:
-        print("CNR {0} does not match SNR {1}".format(dcnr["data"][0], dsnr["data"][0], ))
-        print("Something is quite wrong with  mismatched subject IDs. I'm giving up.")
-    else:
-        head_string = "ID,snr,whole_cnr,left_cnr,right_cnr"
-        data_string = "{i},{s},{cw},{cl},{cr}".format(
-            i=dcnr["data"][0], s=dsnr["data"][1],
-            cw=dcnr["data"][1], cl=dcnr["data"][2], cr=dcnr["data"][3])
+    head_string = "ID,snr,whole_cnr,left_cnr,right_cnr"
+    data_string = "{i},{s},{cw},{cl},{cr}".format(
+        i=dcnr["data"][0], s=dsnr["data"][1],
+        cw=dcnr["data"][1], cl=dcnr["data"][2], cr=dcnr["data"][3])
+    if dcnr["data"][0] == dsnr["data"][0]:
         if args.output:
             if not os.path.isfile(args.output):
                 with open(args.output, "w") as f:
@@ -159,8 +163,16 @@ def output_ratios(dcnr, dsnr):
             with open(args.output, "a") as f:
                 f.write(data_string)
                 f.write("\n")
-        print(head_string)
+        # print(head_string)
         print(data_string)
+    elif dcnr["data"][1] == "N/A" and dsnr["data"][1] == "N/A":
+        # Failed extractions will NOT be written out; they'll be ignored like they never existed.
+        # It may be worth adding a flag to write the "N/A"s out to indicate the failure.
+        print(data_string)
+        pass
+    else:
+        print("CNR {0} does not match SNR {1}".format(dcnr["data"][0], dsnr["data"][0], ))
+        print("Something is quite wrong with mismatched subject IDs. I'm giving up.")
 
 
 # ------------------------------------------------------------------------------
