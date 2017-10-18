@@ -21,18 +21,18 @@ import csv  # To write the final csv mrs file easily
 subject_root = ""
 
 snr = {
-    "name" : "snr", 
-    "cmd" : "wm-anat-snr", 
-    "datafile" : "stats/wmsnr.e3.dat", 
-    "logfile" : "scripts/wmsnr.log", 
-    "data" : (), 
+    "name": "snr",
+    "cmd": "wm-anat-snr",
+    "datafile": "stats/wmsnr.e3.dat",
+    "logfile": "scripts/wmsnr.log",
+    "data": (),
 }
 cnr = {
-    "name" : "cnr", 
-    "cmd" : "mri_cnr", 
-    "datafile" : "stats/wmcnr.dat", 
-    "logfile" : "scripts/wmcnr.log", 
-    "data" : (), 
+    "name": "cnr",
+    "cmd": "mri_cnr",
+    "datafile": "stats/wmcnr.dat",
+    "logfile": "scripts/wmcnr.log",
+    "data": (),
 }
 
 # Parse command-line arguments
@@ -91,15 +91,14 @@ def generate_ratio(d):
                     print(local_output.stderr.decode("utf-8"))
                 if d["name"] == "cnr":
                     # Generate a log file
-                    f = open(os.path.join(subject_root, d["logfile"]), "a")
-                    f.write(" ".join(d["cmd"]))
-                    f.write(local_output.stdout.decode("utf-8"))
-                    f.write("Data written to ../{0}".format(d["datafile"]))
-                    f.close()
+                    with open(os.path.join(subject_root, d["logfile"]), "a") as f:
+                        f.write(" ".join(d["cmd"]))
+                        f.write(local_output.stdout.decode("utf-8"))
+                        f.write("Data written to ../{0}".format(d["datafile"]))
                     # Generate the data file
-                    f = open(os.path.join(subject_root, d["datafile"]), "w")
-                    f.write(local_output.stdout.decode("utf-8"))
-                    f.close()
+                    with open(os.path.join(subject_root, d["datafile"]), "w") as f:
+                        f.write(local_output.stdout.decode("utf-8"))
+                        f.close()
                 elif d["name"] == "snr":
                     # The SNR application generates its own data file and log file.
                     # Just running it does everything.
@@ -121,28 +120,26 @@ def extract_cnr(d):
     right_cnr = 0.0
     whole_cnr = 0.0
     reg_data = re.compile(r'^(?P<side>\w+)\s+CNR\s+=\s+(?P<cnr>\d+\.\d+).*$')
-    f = open(os.path.join(subject_root, d["datafile"]), "r")
-    for line in f:
-        match = reg_data.match(line)
-        if match:
-            if match.group("side") == "lh":
-                left_cnr = match.group('cnr')
-            elif match.group("side") == "rh":
-                right_cnr = match.group("cnr")
-            elif match.group("side") == "total":
-                whole_cnr = match.group("cnr")
-    f.close()
+    with open(os.path.join(subject_root, d["datafile"]), "r") as f:
+        for line in f:
+            match = reg_data.match(line)
+            if match:
+                if match.group("side") == "lh":
+                    left_cnr = match.group('cnr')
+                elif match.group("side") == "rh":
+                    right_cnr = match.group("cnr")
+                elif match.group("side") == "total":
+                    whole_cnr = match.group("cnr")
     d["data"] = (subject_id, whole_cnr, left_cnr, right_cnr, )
 
 
 def extract_snr(d):
     reg_data = re.compile(r'^(?P<id>\w\d{6})\s+(?P<snr>\d+\.\d+)\s+(?P<a>\d+\.\d+)\s+(?P<b>\d+\.\d+)\s+\d+\s+\d+.*$')
-    f = open(os.path.join(subject_root, d["datafile"]), "r")
-    for line in f:
-        match_data = reg_data.match(line)
-        if match_data:
-            d["data"] = (match_data.group('id'), match_data.group('snr'), )
-    f.close()
+    with open(os.path.join(subject_root, d["datafile"]), "r") as f:
+        for line in f:
+            match_data = reg_data.match(line)
+            if match_data:
+                d["data"] = (match_data.group('id'), match_data.group('snr'), )
 
 
 def output_ratios(dcnr, dsnr):
@@ -156,14 +153,12 @@ def output_ratios(dcnr, dsnr):
             cw=dcnr["data"][1], cl=dcnr["data"][2], cr=dcnr["data"][3])
         if args.output:
             if not os.path.isfile(args.output):
-                f = open(args.output, "w")
-                f.write(head_string)
+                with open(args.output, "w") as f:
+                    f.write(head_string)
+                    f.write("\n")
+            with open(args.output, "a") as f:
+                f.write(data_string)
                 f.write("\n")
-                f.close()
-            f = open(args.output, "a")
-            f.write(data_string)
-            f.write("\n")
-            f.close()
         print(head_string)
         print(data_string)
 
